@@ -18,7 +18,6 @@ import javax.annotation.PostConstruct;
 import org.apache.commons.beanutils.ConvertUtilsBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
@@ -33,7 +32,6 @@ import com.google.common.base.Throwables;
 @Service
 public class ConfigImpl implements Config {
 
-  @Autowired
   private final static Logger log = LoggerFactory.getLogger(ConfigImpl.class);
   private final AtomicReference<Properties> properties = new AtomicReference<>(new Properties());
   private final ConvertUtilsBean bean = new ConvertUtilsBean();
@@ -119,7 +117,7 @@ public class ConfigImpl implements Config {
     // bootstrap setting log level here
     if (StringUtils.hasText(properties.get().getProperty("log.root.level"))) {
       LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-      ch.qos.logback.classic.Logger logger = lc.getLogger("com.pixtulate");
+      ch.qos.logback.classic.Logger logger = lc.getLogger("com.appconfig");
       logger.setLevel(Level.valueOf(properties.get().getProperty("log.root.level")));
       log.info("Configuring log level: " + logger.getLevel());
     }
