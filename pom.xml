@@ -44,8 +44,14 @@
 		<dependency>
 			<groupId>org.testng</groupId>
 			<artifactId>testng</artifactId>
-			<version>6.8.8</version>
+			<version>6.8.7</version>
 			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<artifactId>bsh</artifactId>
+					<groupId>org.beanshell</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
@@ -87,4 +93,8 @@
 			</plugin>
 		</plugins>
 	</build>
+	<scm>
+		<connection>scm:git:https://git.cloudbees.com/appcrossings/apponfig.git</connection>
+		<developerConnection>scm:git:https://git.cloudbees.com/appcrossings/apponfig.git</developerConnection>
+	</scm>
 </project>
