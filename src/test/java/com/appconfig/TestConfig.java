@@ -81,7 +81,7 @@ public class TestConfig {
     
     Properties p = config.loadHosts(host + "/env/hosts.properties");
     Assert.assertNotNull(p);
-    Assert.assertTrue(p.containsKey("michelangello"));   
+    Assert.assertTrue(p.containsKey("kkarski-ibm"));   
     
   }
   
@@ -91,7 +91,7 @@ public class TestConfig {
     Properties p = config.loadProperties(host + "/env/dev");
       
     Assert.assertNotNull(p);
-    Assert.assertTrue(p.containsKey("wurfl.path"));   
+    Assert.assertTrue(p.containsKey("algo.im.path"));   
     
   }
   
