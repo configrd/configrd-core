@@ -6,6 +6,17 @@
 		http://cxf.apache.org/configuration/beans http://cxf.apache.org/schemas/configuration/cxf-beans.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd
 		http://cxf.apache.org/jaxrs http://cxf.apache.org/schemas/jaxrs.xsd">
+		
+	<bean id="executorService" class="java.util.concurrent.Executors"
+		factory-method="newFixedThreadPool" destroy-method="shutdownNow">
+		<constructor-arg value="2" />
+	</bean>
 
-	<context:component-scan base-package="com.appconfig" />
+	<bean id="asyncBus" class="com.google.common.eventbus.AsyncEventBus">
+		<constructor-arg ref="executorService" />
+		<constructor-arg>
+			<bean class="com.appcrossings.events.EventBusExceptionHandler" />
+		</constructor-arg>
+	</bean>
+
 </beans>
