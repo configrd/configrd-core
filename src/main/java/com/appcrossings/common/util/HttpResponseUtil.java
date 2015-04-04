@@ -65,6 +65,8 @@ public class HttpResponseUtil {
       error = true;
     } else if (resp.getEntity() instanceof ErrorResponse) {
       error = true;
+    } else if (resp.readEntity(ErrorResponse.class) != null) {
+      error = true;
     }
 
     return error;
@@ -92,6 +94,8 @@ public class HttpResponseUtil {
         throw new IllegalArgumentException("Unable to map string to ErrorResponse. Maybe not an error");
       }
 
+    } else if (resp.readEntity(ErrorResponse.class) != null) {
+      err = resp.readEntity(ErrorResponse.class);
     }
 
     return err;
