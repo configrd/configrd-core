@@ -51,12 +51,12 @@ public class ConfigImpl implements Config {
 
     boolean sync = false;
     synchronized (lastRefresh) {
-      if((now - lastRefresh) > (ttl.get() * 1000)){
+      if ((now - lastRefresh) > (ttl.get() * 1000)) {
         sync = true;
-        lastRefresh = System.currentTimeMillis(); 
+        lastRefresh = System.currentTimeMillis();
       }
     }
-    
+
     if (sync) {
 
       try {
@@ -72,22 +72,22 @@ public class ConfigImpl implements Config {
 
     if (clazz.equals(String.class))
       return (T) property;
-    else if(property != null)
+    else if (property != null)
       return (T) bean.convert(property, clazz);
     else
       return null;
 
   }
-  
-  public <T> T getProperty(String key, Class<T> clazz, T value){
-    
+
+  public <T> T getProperty(String key, Class<T> clazz, T value) {
+
     T val = getProperty(key, clazz);
-    
-    if(val != null)
+
+    if (val != null)
       return val;
-    
+
     return value;
-    
+
   }
 
   public ConfigImpl() throws Exception {
@@ -144,7 +144,7 @@ public class ConfigImpl implements Config {
 
     try {
 
-      hostName = inet.getHostName();
+      hostName = StringUtils.hasText(System.getProperty("hostname")) ? System.getProperty("hostname") : inet.getHostName();
 
       if (!StringUtils.hasText(hostName)) {
         throw new UnknownHostException("Unable to resolve host in order to resolve hosts file config");
@@ -213,7 +213,8 @@ public class ConfigImpl implements Config {
         } catch (IOException e) {
 
           // file not found...no issue, keep going
-          if (StringUtils.hasText(e.getMessage()) && (e.getMessage().contains("code: 403") || e.getMessage().contains("code: 404"))) {
+          if (StringUtils.hasText(e.getMessage())
+              && (e.getMessage().contains("code: 403") || e.getMessage().contains("code: 404"))) {
 
             propertiesPath = stripDir(propertiesPath);
             continue;

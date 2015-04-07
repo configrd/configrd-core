@@ -56,6 +56,15 @@ public class TestConfig {
     Assert.assertEquals(p.getProperty("michelangello"), "classpath:/env/dev/");
 
   }
+  
+  @Test
+  public void overrideHostName() throws Exception {
+    System.setProperty("hostname", "testhost");
+    
+    String hostName = config.detectHostName();
+    Assert.assertNotNull(hostName);
+    Assert.assertEquals(hostName, "testhost");
+  }
 
   @Test
   public void loadProperties() throws Exception {
@@ -137,6 +146,7 @@ public class TestConfig {
   @AfterMethod
   public void tearDown() {
     Mockito.reset(inet);
+    System.setProperty("hostname", "");
   }
 
 }
