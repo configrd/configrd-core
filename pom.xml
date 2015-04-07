@@ -6,19 +6,17 @@
 	<version>1.0.0-SNAPSHOT</version>
 	<name>Application Configuration</name>
 	<distributionManagement>
-		<snapshotRepository>
-			<id>cloudbees-snapshot</id>
-			<name>CloudBees Snapshot</name>
-			<uniqueVersion>true</uniqueVersion>
-			<url>dav:https://repository-appcrossings.forge.cloudbees.com/snapshot/</url>
-		</snapshotRepository>
-		<repository>
-			<id>cloudbees-release</id>
-			<name>CloudBees Release</name>
-			<uniqueVersion>false</uniqueVersion>
-			<url>dav:https://repository-appcrossings.forge.cloudbees.com/release/</url>
-		</repository>
-	</distributionManagement>
+    <repository>
+      <id>aws-release</id>
+      <name>AWS Release Repository</name>
+      <url>s3://maven.pixtulate.com/release</url>
+    </repository>
+    <snapshotRepository>
+      <id>aws-snapshot</id>
+      <name>AWS Snapshot Repository</name>
+      <url>s3://maven.pixtulate.com/snapshot</url>
+    </snapshotRepository>
+  </distributionManagement>
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
