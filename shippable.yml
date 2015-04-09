@@ -15,13 +15,13 @@ before_script:
   - update-alternatives --set java $java_path
   - java -version
 
-before_install:
-  - apt-get install -y maven
-  - apt-get install -y graphicsmagick
-
 branches:
   only:
     - master
+
+install:
+  - apt-get update
+  - apt-get install -y maven graphicsmagick
 
 before_script:
   - export MAVEN_OPTS="-Dhostname=kkarski-ibm"
