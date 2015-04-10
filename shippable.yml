@@ -1,12 +1,9 @@
 language: java
 
-jdk:
-  - oraclejdk7
+jdk: oraclejdk7
 
-# specify the build_image
 build_image: shippableimages/ubuntu1404_java
 
-# Activate jdk
 before_script:
   - if [[ $SHIPPABLE_JDK_VERSION == "openjdk7" ]] ; then export JAVA_HOME="/usr/lib/jvm/java-7-openjdk-amd64"; export PATH="$PATH:/usr/lib/jvm/java-7-openjdk-amd64/bin"; export java_path="/usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java"; fi
   - if [[ $SHIPPABLE_JDK_VERSION == "oraclejdk7" ]] ; then export JAVA_HOME="/usr/lib/jvm/java-7-oracle"; export PATH="$PATH:/usr/lib/jvm/java-7-oracle/bin"; export java_path="/usr/lib/jvm/java-7-oracle/jre/bin/java"; fi
@@ -21,17 +18,10 @@ branches:
 
 install:
   - apt-get update
-  - apt-get install -y maven graphicsmagick
-
-before_script:
-  - export MAVEN_OPTS="-Dhostname=kkarski-ibm"
+  - apt-get install -y maven
 
 script:
-  - mvn clean install -DskipTests=true -DskipITs=true -U -Daws.accessKeyId=AKIAIENSRCCLALIZBRUA -Daws.secretKey=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
+  - mvn clean install -U -Daws.accessKeyId=AKIAIENSRCCLALIZBRUA -Daws.secretKey=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
 
 after_success:
-  - mvn spring-boot:run -f war/pom.xml &
-  - mvn -B test
-
-after_script:
-  - mvn deploy -Daws.accessKeyId=AKIAIENSRCCLALIZBRUA -Daws.secretKey=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
+  - mvn deploy -Dmaven.install.skip=true -Daws.accessKeyId=AKIAIENSRCCLALIZBRUA -Daws.secretKey=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
