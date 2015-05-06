@@ -59,7 +59,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config 
 	private final ConcurrentHashMap<String, Set<ConfigChangeListener>> listeners = new ConcurrentHashMap<String, Set<ConfigChangeListener>>();
 
 	private final AtomicLong ttl;
-	
+
 	private int refresh = 600;
 
 	/**
@@ -81,18 +81,21 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config 
 		this.hostsFile = path;
 		ttl = new AtomicLong(refresh);
 	}
-	
+
 	/**
 	 * 
-	 * @param path - The path of the hosts.properties file
-	 * @param refresh - The period in seconds at which the config properties should be refreshed. Defaults to 10 minutes. 
+	 * @param path
+	 *            - The path of the hosts.properties file
+	 * @param refresh
+	 *            - The period in seconds at which the config properties should
+	 *            be refreshed. Defaults to 10 minutes.
 	 * @throws Exception
 	 */
 	public ConfigImpl(String path, int refresh) throws Exception {
 		this.hostsFile = path;
 		ttl = new AtomicLong(refresh);
-	}	
-	
+	}
+
 	@Override
 	public void deregister(String key, ConfigChangeListener listener) {
 
@@ -122,11 +125,11 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config 
 						"Unable to resolve host in order to resolve hosts file config");
 			}
 
-			log.info("Resolved hostname to: " + hostName);
+			if (hostName.contains(".")) {
+				hostName = hostName.substring(0, hostName.indexOf("."));
+			}
 
-			// if (hostName.contains(".")) {
-			// hostName = hostName.substring(0, hostName.indexOf("."));
-			// }
+			log.info("Resolved hostname to: " + hostName);
 
 		} catch (UnknownHostException ex) {
 			log.error("Can't resolve hostname", ex);
