@@ -339,9 +339,16 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config 
 	@Override
 	public void register(String key, ConfigChangeListener listener) {
 
-		listeners.getOrDefault(key,
-				new ConcurrentSkipListSet<ConfigChangeListener>())
-				.add(listener);
+		if (listeners.contains(key)) {
+			listeners.get(key).add(listener);
+		} else {
+			synchronized (listeners) {
+				Set<ConfigChangeListener> n = new ConcurrentSkipListSet<ConfigChangeListener>();
+				n.add(listener);
+				listeners.put(key, n);
+			}
+
+		}
 
 	}
 
