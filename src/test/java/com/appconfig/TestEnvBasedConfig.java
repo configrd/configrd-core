@@ -9,11 +9,11 @@ import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
 import org.testng.annotations.Test;
 
 @ContextConfiguration("classpath:META-INF/spring/test-spring-configurer.xml")
-public class TestAppConfigSpringConfigurer extends
+public class TestEnvBasedConfig extends
 		AbstractTestNGSpringContextTests {
 
 	static {
-		System.setProperty("hostname", "michelangello-custom");
+		System.setProperty("env", "QA");
 	}
 
 	@Autowired

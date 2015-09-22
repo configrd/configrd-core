@@ -4,17 +4,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
 import org.testng.annotations.Test;
 
+@ActiveProfiles("QA")
 @ContextConfiguration("classpath:META-INF/spring/test-spring-configurer.xml")
-public class TestAppConfigSpringConfigurer extends
+public class TestSpringProfileBasedConfig extends
 		AbstractTestNGSpringContextTests {
-
-	static {
-		System.setProperty("hostname", "michelangello-custom");
-	}
 
 	@Autowired
 	public SampleClass clazz;

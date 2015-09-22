@@ -25,8 +25,7 @@ public class TestConfig {
 
     Mockito.doReturn("michelangello").when(inet).getHostName();
 
-    config = new ConfigImpl();
-    config.hostsFile = "classpath:/env/hosts.properties";
+    config = new ConfigImpl("classpath:/env/hosts.properties");
     config.inet = inet;
     config.init();
   }

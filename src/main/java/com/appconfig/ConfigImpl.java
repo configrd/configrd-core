@@ -21,8 +21,11 @@ import javax.annotation.PostConstruct;
 import org.apache.commons.beanutils.ConvertUtilsBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
+import org.springframework.context.EnvironmentAware;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -41,16 +44,21 @@ import com.google.common.base.Throwables;
  *
  */
 @Service
-public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config {
+public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config, EnvironmentAware {
 
-	private static final String DEFAULT_FILE = "default.properties";
 	private final static Logger log = LoggerFactory.getLogger(ConfigImpl.class);
 	private final ConvertUtilsBean bean = new ConvertUtilsBean();
 
 	@Value("${properties.hostsFilePath}")
 	protected String hostsFile;
 
+	@Autowired(required = false)
+	protected Environment springProfiles;
+	
+	private String fileName = "default.properties";
+	
 	protected InetAddress inet = InetAddress.getLocalHost();
+	
 	private Long lastRefresh = Long.MIN_VALUE;
 
 	private final AtomicReference<Properties> properties = new AtomicReference<>(
@@ -95,6 +103,21 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config 
 		this.hostsFile = path;
 		ttl = new AtomicLong(refresh);
 	}
+	
+	/**
+	 * 
+	 * @param path
+	 *            - The path of the hosts.properties file
+	 * @param refresh
+	 *            - The period in seconds at which the config properties should
+	 *            be refreshed. Defaults to 10 minutes.
+	 * @throws Exception
+	 */
+	public ConfigImpl(String path, String fileName, int refresh) throws Exception {
+		this.hostsFile = path;
+		this.fileName = fileName;
+		ttl = new AtomicLong(refresh);
+	}
 
 	@Override
 	public void deregister(String key, ConfigChangeListener listener) {
@@ -109,7 +132,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config 
 	 * its configuration. You can programmatically override the hostname value
 	 * by setting System.setProperty("hostname", "value").
 	 * 
-	 * @return
+	 * @return hostname
 	 */
 	protected String detectHostName() {
 
@@ -137,6 +160,36 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config 
 		}
 
 		return hostName;
+	}
+	
+	/**
+	 * Attempt to detect environment of the application. 
+	 * 
+	 * @return environment string
+	 */
+	protected String detectEnvironment(){
+		
+		String env = null;
+		
+		if(springProfiles != null && springProfiles.getActiveProfiles() != null && springProfiles.getActiveProfiles().length > 0){
+			env = springProfiles.getActiveProfiles()[0];
+		}
+		
+		try {
+			
+			env = StringUtils.hasText(env) ? env : System.getProperty("env");
+			
+			if(!StringUtils.hasText(env)){
+				log.info("No environment variable detected under 'spring.profiles' or system property 'env'");
+			}else{
+				log.info("Detected environment: " + env);
+			}
+			
+		}catch(Exception e){
+			log.error("Error while detecting environment", e);
+		}
+		
+		return env;
 	}
 
 	@Override
@@ -205,11 +258,19 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config 
 		Properties hosts = loadHosts(hostsFile);
 
 		String hostName = detectHostName();
+		String environment = detectEnvironment();
+		
 		String propertiesFile = hosts.getProperty(hostName);
-
-		// Special wildchar match
-		if (!StringUtils.hasText(propertiesFile)) {
+		
+		//Attempt environment as a backup
+		if(!StringUtils.hasText(propertiesFile) && StringUtils.hasText(environment)){
+		
+			propertiesFile = hosts.getProperty(environment);
+		
+		}else if (!StringUtils.hasText(propertiesFile)) {
+			
 			propertiesFile = hosts.getProperty("*");
+		
 		}
 
 		Properties ps = loadProperties(propertiesFile);
@@ -286,7 +347,13 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config 
 			do {
 
 				Resource resource = new DefaultResourceLoader()
-						.getResource(propertiesPath + "/" + DEFAULT_FILE);
+						.getResource(propertiesPath + "/" + fileName);
+				
+				//Check if a spring properties file exists
+				if(!resource.exists()){
+					resource = new DefaultResourceLoader()
+					.getResource(propertiesPath + "/application.properties");
+				}
 
 				// Search for default.properties file in parent folders
 				if (!resource.exists()) {
@@ -299,7 +366,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config 
 				try (InputStream stream2 = resource.getInputStream()) {
 
 					log.info("Found properties file: " + propertiesPath + "/"
-							+ DEFAULT_FILE);
+							+ resource.getFilename());
 					p.load(stream2);
 					all.add(p);
 
@@ -365,6 +432,11 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config 
 
 		return "";
 
+	}
+
+	@Override
+	public void setEnvironment(Environment environment) {
+		this.springProfiles = environment;		
 	}
 
 }
