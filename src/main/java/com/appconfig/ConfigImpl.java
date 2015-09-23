@@ -11,9 +11,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.PostConstruct;
@@ -44,31 +45,40 @@ import com.google.common.base.Throwables;
  *
  */
 @Service
-public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config, EnvironmentAware {
+public class ConfigImpl extends PropertyPlaceholderConfigurer implements
+		Config, EnvironmentAware {
+
+	private class ReloadTask extends TimerTask {
+
+		@Override
+		public void run() {
+			try {
+				init();
+			} catch (Exception e) {
+				logger.error("Error refreshing configs", e);
+			}
+		}
+	}
 
 	private final static Logger log = LoggerFactory.getLogger(ConfigImpl.class);
 	private final ConvertUtilsBean bean = new ConvertUtilsBean();
 
+	private String fileName = "default.properties";
+
 	@Value("${properties.hostsFilePath}")
 	protected String hostsFile;
 
-	@Autowired(required = false)
-	protected Environment springProfiles;
-	
-	private String fileName = "default.properties";
-	
 	protected InetAddress inet = InetAddress.getLocalHost();
-	
-	private Long lastRefresh = Long.MIN_VALUE;
+
+	private final ConcurrentHashMap<String, Set<ConfigChangeListener>> listeners = new ConcurrentHashMap<String, Set<ConfigChangeListener>>();
 
 	private final AtomicReference<Properties> properties = new AtomicReference<>(
 			new Properties());
 
-	private final ConcurrentHashMap<String, Set<ConfigChangeListener>> listeners = new ConcurrentHashMap<String, Set<ConfigChangeListener>>();
+	@Autowired(required = false)
+	protected Environment springProfiles;
 
-	private final AtomicLong ttl;
-
-	private int refresh = 600;
+	private Timer timer = new Timer(true);
 
 	/**
 	 * Set path to hosts.properties file using the setter.
@@ -76,7 +86,6 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config,
 	 * @throws Exception
 	 */
 	public ConfigImpl() throws Exception {
-		ttl = new AtomicLong(refresh);
 	}
 
 	/**
@@ -87,7 +96,6 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config,
 	 */
 	public ConfigImpl(String path) throws Exception {
 		this.hostsFile = path;
-		ttl = new AtomicLong(refresh);
 	}
 
 	/**
@@ -101,9 +109,20 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config,
 	 */
 	public ConfigImpl(String path, int refresh) throws Exception {
 		this.hostsFile = path;
-		ttl = new AtomicLong(refresh);
+		setRefreshRate(refresh);
 	}
-	
+
+	/**
+	 * 
+	 * @param path
+	 *            The path of the hosts.properties file
+	 * @throws Exception
+	 */
+	public ConfigImpl(String path, String fileName) throws Exception {
+		this.hostsFile = path;
+		this.fileName = fileName;
+	}
+
 	/**
 	 * 
 	 * @param path
@@ -113,10 +132,11 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config,
 	 *            be refreshed. Defaults to 10 minutes.
 	 * @throws Exception
 	 */
-	public ConfigImpl(String path, String fileName, int refresh) throws Exception {
+	public ConfigImpl(String path, String fileName, int refresh)
+			throws Exception {
 		this.hostsFile = path;
 		this.fileName = fileName;
-		ttl = new AtomicLong(refresh);
+		setRefreshRate(refresh);
 	}
 
 	@Override
@@ -125,6 +145,38 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config,
 		if (listeners.containsKey(key)) {
 			listeners.get(key).remove(listener);
 		}
+	}
+
+	/**
+	 * Attempt to detect environment of the application.
+	 * 
+	 * @return environment string
+	 */
+	protected String detectEnvironment() {
+
+		String env = null;
+
+		if (springProfiles != null
+				&& springProfiles.getActiveProfiles() != null
+				&& springProfiles.getActiveProfiles().length > 0) {
+			env = springProfiles.getActiveProfiles()[0];
+		}
+
+		try {
+
+			env = StringUtils.hasText(env) ? env : System.getProperty("env");
+
+			if (!StringUtils.hasText(env)) {
+				log.info("No environment variable detected under 'spring.profiles' or system property 'env'");
+			} else {
+				log.info("Detected environment: " + env);
+			}
+
+		} catch (Exception e) {
+			log.error("Error while detecting environment", e);
+		}
+
+		return env;
 	}
 
 	/**
@@ -161,36 +213,6 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config,
 
 		return hostName;
 	}
-	
-	/**
-	 * Attempt to detect environment of the application. 
-	 * 
-	 * @return environment string
-	 */
-	protected String detectEnvironment(){
-		
-		String env = null;
-		
-		if(springProfiles != null && springProfiles.getActiveProfiles() != null && springProfiles.getActiveProfiles().length > 0){
-			env = springProfiles.getActiveProfiles()[0];
-		}
-		
-		try {
-			
-			env = StringUtils.hasText(env) ? env : System.getProperty("env");
-			
-			if(!StringUtils.hasText(env)){
-				log.info("No environment variable detected under 'spring.profiles' or system property 'env'");
-			}else{
-				log.info("Detected environment: " + env);
-			}
-			
-		}catch(Exception e){
-			log.error("Error while detecting environment", e);
-		}
-		
-		return env;
-	}
 
 	@Override
 	public <T> T getDecryptedProperty(String key, Class<T> clazz) {
@@ -209,26 +231,26 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config,
 	@Override
 	public <T> T getProperty(String key, Class<T> clazz) {
 
-		long now = System.currentTimeMillis();
+		// long now = System.currentTimeMillis();
 
-		boolean sync = false;
-		synchronized (lastRefresh) {
-			if ((now - lastRefresh) > (ttl.get() * 1000)) {
-				sync = true;
-				lastRefresh = System.currentTimeMillis();
-			}
-		}
-
-		if (sync) {
-
-			try {
-				init();
-			} catch (Exception e) {
-				log.error("Attempting to reload config has failed", e);
-			}
-
-			sync = false;
-		}
+		// boolean sync = false;
+		// synchronized (lastRefresh) {
+		// if ((now - lastRefresh) > (ttl.get() * 1000)) {
+		// sync = true;
+		// lastRefresh = System.currentTimeMillis();
+		// }
+		// }
+		//
+		// if (sync) {
+		//
+		// try {
+		// init();
+		// } catch (Exception e) {
+		// log.error("Attempting to reload config has failed", e);
+		// }
+		//
+		// sync = false;
+		// }
 
 		String property = properties.get().getProperty(key);
 
@@ -259,18 +281,19 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config,
 
 		String hostName = detectHostName();
 		String environment = detectEnvironment();
-		
+
 		String propertiesFile = hosts.getProperty(hostName);
-		
-		//Attempt environment as a backup
-		if(!StringUtils.hasText(propertiesFile) && StringUtils.hasText(environment)){
-		
+
+		// Attempt environment as a backup
+		if (!StringUtils.hasText(propertiesFile)
+				&& StringUtils.hasText(environment)) {
+
 			propertiesFile = hosts.getProperty(environment);
-		
-		}else if (!StringUtils.hasText(propertiesFile)) {
-			
+
+		} else if (!StringUtils.hasText(propertiesFile)) {
+
 			propertiesFile = hosts.getProperty("*");
-		
+
 		}
 
 		Properties ps = loadProperties(propertiesFile);
@@ -281,7 +304,16 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config,
 		}
 
 		properties.set(ps);
+		
+		String ttl = (String) properties.get().get("config.ttl");
+		if (ttl != null) {
 
+			Integer lttl = Integer.valueOf(ttl);
+
+			log.info("Setting config refresh rate to: " + lttl + " seconds.");
+			setRefreshRate(lttl);
+		}
+		
 		// bootstrap setting log level here
 		if (StringUtils.hasText(properties.get().getProperty("log.root.level"))) {
 			LoggerContext lc = (LoggerContext) LoggerFactory
@@ -291,22 +323,6 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config,
 			logger.setLevel(Level.valueOf(properties.get().getProperty(
 					"log.root.level")));
 			log.info("Configuring log level: " + logger.getLevel());
-		}
-
-		String ttl = (String) properties.get().get("config.ttl");
-		if (ttl != null) {
-
-			long lttl = Long.valueOf(ttl);
-
-			if (lttl > 0 && lttl != this.ttl.get()) {
-
-				log.info("Setting config time to live (config.ttl) to: " + ttl
-						+ " seconds.");
-				this.ttl.set(lttl * 1000);
-			}
-		} else {
-			log.info("Config time to live (config.ttl) set to: "
-					+ this.ttl.get() + " seconds.");
 		}
 
 		super.setProperties(getLoadedProperties());
@@ -348,11 +364,12 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config,
 
 				Resource resource = new DefaultResourceLoader()
 						.getResource(propertiesPath + "/" + fileName);
-				
-				//Check if a spring properties file exists
-				if(!resource.exists()){
+
+				// Check if a spring properties file exists
+				if (!resource.exists()) {
 					resource = new DefaultResourceLoader()
-					.getResource(propertiesPath + "/application.properties");
+							.getResource(propertiesPath
+									+ "/application.properties");
 				}
 
 				// Search for default.properties file in parent folders
@@ -419,8 +436,32 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config,
 
 	}
 
+	@Override
+	public void setEnvironment(Environment environment) {
+		this.springProfiles = environment;
+	}
+
 	public void setHostsFile(String hostsFile) {
 		this.hostsFile = hostsFile;
+	}
+
+	private void setRefreshRate(Integer refresh) {
+		
+		if (refresh == 0L || refresh == null) {
+			timer.cancel();
+			return;
+		}		
+
+		synchronized (timer) {
+			try {
+				timer.cancel();
+				timer = new Timer(true);
+			} catch (IllegalStateException e) {
+				// Nothing
+			}
+
+			timer.schedule(new ReloadTask(), refresh * 1000, refresh * 1000);
+		}
 	}
 
 	private String stripDir(String path) {
@@ -433,10 +474,4 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements Config,
 		return "";
 
 	}
-
-	@Override
-	public void setEnvironment(Environment environment) {
-		this.springProfiles = environment;		
-	}
-
 }

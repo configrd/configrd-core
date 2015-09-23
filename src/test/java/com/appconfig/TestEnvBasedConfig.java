@@ -4,15 +4,19 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+@DirtiesContext
 @ContextConfiguration("classpath:META-INF/spring/test-spring-configurer.xml")
-public class TestEnvBasedConfig extends
-		AbstractTestNGSpringContextTests {
+public class TestEnvBasedConfig extends AbstractTestNGSpringContextTests {
 
-	static {
+	@BeforeClass
+	public void init() {
 		System.setProperty("env", "QA");
 	}
 
@@ -35,6 +39,11 @@ public class TestEnvBasedConfig extends
 		assertNotNull(clazz.getPropertyValue("property.1.name", String.class));
 		assertEquals(clazz.getPropertyValue("property.1.name", String.class),
 				"custom");
+	}
+
+	@AfterClass
+	public void tearDown() {
+		System.setProperty("env", "");
 	}
 
 }

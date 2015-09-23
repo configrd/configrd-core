@@ -5,11 +5,13 @@ import static org.junit.Assert.assertNotNull;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
 import org.testng.annotations.Test;
 
+@DirtiesContext
 @ActiveProfiles("QA")
 @ContextConfiguration("classpath:META-INF/spring/test-spring-configurer.xml")
 public class TestSpringProfileBasedConfig extends
