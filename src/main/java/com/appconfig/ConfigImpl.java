@@ -282,6 +282,8 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 	@PostConstruct
 	protected void init() throws Exception {
 
+		logger.info("Loading property files...");
+		
 		Properties hosts = loadHosts(hostsFile);
 
 		String hostName = detectHostName();
@@ -305,7 +307,8 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 
 		if (ps.isEmpty()) {
 			throw new FileNotFoundException(
-					"Counldn't find any properties for host " + hostName);
+					"Counldn't find any properties for host " + hostName
+							+ " or environment " + environment);
 		}
 
 		properties.set(ps);
@@ -373,7 +376,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 
 				all.add(fetchProperties(propertiesPath));
 				propertiesPath = stripDir(propertiesPath);
-				
+
 			} while (new File(propertiesPath).getParent() != null);
 		}
 
@@ -421,7 +424,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 		this.hostsFile = hostsFile;
 	}
 
-	private void setRefreshRate(Integer refresh) {
+	public void setRefreshRate(Integer refresh) {
 
 		if (refresh == 0L || refresh == null) {
 			timer.cancel();
@@ -429,13 +432,8 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 		}
 
 		synchronized (timer) {
-			try {
-				timer.cancel();
-				timer = new Timer(true);
-			} catch (IllegalStateException e) {
-				// Nothing
-			}
-
+			timer.cancel();
+			timer = new Timer(true);
 			timer.schedule(new ReloadTask(), refresh * 1000, refresh * 1000);
 		}
 	}
@@ -452,9 +450,9 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 	}
 
 	private Properties fetchProperties(String propertiesPath) {
-		
+
 		Properties p = new Properties();
-		
+
 		Resource resource = new DefaultResourceLoader()
 				.getResource(propertiesPath + "/" + fileName);
 
@@ -471,7 +469,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 
 				log.info("Found properties file: " + propertiesPath + "/"
 						+ resource.getFilename());
-				p.load(stream2);				
+				p.load(stream2);
 
 			} catch (IOException e) {
 
@@ -488,7 +486,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 				}
 			}
 		}
-		
+
 		return p;
 	}
 
