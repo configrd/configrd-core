@@ -64,7 +64,6 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 	private final ConvertUtilsBean bean = new ConvertUtilsBean();
 
 	private String fileName = "default.properties";
-
 	@Value("${properties.hostsFilePath}")
 	protected String hostsFile;
 
@@ -74,6 +73,12 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 
 	private final AtomicReference<Properties> properties = new AtomicReference<>(
 			new Properties());
+
+	private boolean searchClasspath = true;
+
+	public void setSearchClasspath(boolean searchClasspath) {
+		this.searchClasspath = searchClasspath;
+	}
 
 	@Autowired(required = false)
 	protected Environment springProfiles;
@@ -304,7 +309,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 		}
 
 		properties.set(ps);
-		
+
 		String ttl = (String) properties.get().get("config.ttl");
 		if (ttl != null) {
 
@@ -313,7 +318,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 			log.info("Setting config refresh rate to: " + lttl + " seconds.");
 			setRefreshRate(lttl);
 		}
-		
+
 		// bootstrap setting log level here
 		if (StringUtils.hasText(properties.get().getProperty("log.root.level"))) {
 			LoggerContext lc = (LoggerContext) LoggerFactory
@@ -327,6 +332,10 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 
 		super.setProperties(getLoadedProperties());
 
+	}
+
+	public boolean isSearchClasspath() {
+		return searchClasspath;
 	}
 
 	protected Properties loadHosts(String hostsFile)
@@ -362,49 +371,16 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 
 			do {
 
-				Resource resource = new DefaultResourceLoader()
-						.getResource(propertiesPath + "/" + fileName);
-
-				// Check if a spring properties file exists
-				if (!resource.exists()) {
-					resource = new DefaultResourceLoader()
-							.getResource(propertiesPath
-									+ "/application.properties");
-				}
-
-				// Search for default.properties file in parent folders
-				if (!resource.exists()) {
-					propertiesPath = stripDir(propertiesPath);
-					continue;
-				}
-
-				Properties p = new Properties();
-
-				try (InputStream stream2 = resource.getInputStream()) {
-
-					log.info("Found properties file: " + propertiesPath + "/"
-							+ resource.getFilename());
-					p.load(stream2);
-					all.add(p);
-
-				} catch (IOException e) {
-
-					// file not found...no issue, keep going
-					if (StringUtils.hasText(e.getMessage())
-							&& (e.getMessage().contains("code: 403") || e
-									.getMessage().contains("code: 404"))) {
-
-						propertiesPath = stripDir(propertiesPath);
-						continue;
-
-					} else {
-						Throwables.propagate(e);
-					}
-				}
-
+				all.add(fetchProperties(propertiesPath));
 				propertiesPath = stripDir(propertiesPath);
-
+				
 			} while (new File(propertiesPath).getParent() != null);
+		}
+
+		// Finally, check classpath
+		if (searchClasspath) {
+			all.add(fetchProperties("classpath:/config/"));
+			all.add(fetchProperties("classpath:"));
 		}
 
 		Collections.reverse(all); // sort from root to highest
@@ -446,11 +422,11 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 	}
 
 	private void setRefreshRate(Integer refresh) {
-		
+
 		if (refresh == 0L || refresh == null) {
 			timer.cancel();
 			return;
-		}		
+		}
 
 		synchronized (timer) {
 			try {
@@ -473,5 +449,54 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 
 		return "";
 
+	}
+
+	private Properties fetchProperties(String propertiesPath) {
+		
+		Properties p = new Properties();
+		
+		Resource resource = new DefaultResourceLoader()
+				.getResource(propertiesPath + "/" + fileName);
+
+		// Check if a spring properties file exists
+		if (!resource.exists()) {
+			resource = new DefaultResourceLoader().getResource(propertiesPath
+					+ "/application.properties");
+		}
+
+		// Search for default.properties file in parent folders
+		if (resource.exists()) {
+
+			try (InputStream stream2 = resource.getInputStream()) {
+
+				log.info("Found properties file: " + propertiesPath + "/"
+						+ resource.getFilename());
+				p.load(stream2);				
+
+			} catch (IOException e) {
+
+				// file not found...no issue, keep going
+				if (StringUtils.hasText(e.getMessage())
+						&& (e.getMessage().contains("code: 403") || e
+								.getMessage().contains("code: 404"))) {
+
+					// Do nothing here since we'll just keep looping with parent
+					// path anyway
+
+				} else {
+					Throwables.propagate(e);
+				}
+			}
+		}
+		
+		return p;
+	}
+
+	public String getFileName() {
+		return fileName;
+	}
+
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
 	}
 }

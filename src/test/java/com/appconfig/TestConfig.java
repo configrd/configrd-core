@@ -132,6 +132,31 @@ public class TestConfig {
   }
   
   @Test
+  public void testIncludeClasspathProperty() throws Exception {
+    
+    Mockito.doReturn("michelangello-custom").when(inet).getHostName();
+    config.setSearchClasspath(true);
+    config.init();
+    
+    String value = config.getProperty("property.5.name", String.class);
+    Assert.assertNotNull(value);
+    Assert.assertEquals(value, "classpath");
+    
+  }
+  
+  @Test
+  public void testDoNotIncludeClasspathProperty() throws Exception {
+    
+    Mockito.doReturn("michelangello-custom").when(inet).getHostName();
+    config.setSearchClasspath(false);
+    config.init();
+    
+    String value = config.getProperty("property.5.name", String.class);
+    Assert.assertNull(value);
+        
+  }
+  
+  @Test
   public void testGetNonExistingProperty() throws Exception {
     
     Mockito.doReturn("michelangello-custom").when(inet).getHostName();
