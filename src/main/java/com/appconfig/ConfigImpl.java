@@ -71,9 +71,9 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 	@Value("${properties.hostsFilePath}")
 	protected String hostsFile;
 	protected InetAddress inet = InetAddress.getLocalHost();
-	
+
 	private final ConcurrentHashMap<String, Set<ConfigChangeListener>> listeners = new ConcurrentHashMap<String, Set<ConfigChangeListener>>();
-	protected String password = "";
+	protected String password = "secret";
 
 	private final AtomicReference<EncryptableProperties> properties = new AtomicReference<>(
 			new EncryptableProperties(encryptor));
@@ -306,12 +306,14 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 	@PostConstruct
 	protected void init() throws Exception {
 
-		encryptor.setPassword(password);
-		encryptor.setAlgorithm("PBEWithMD5AndTripleDES");
-		encryptor.setPoolSize(4);
-		
+		if (!encryptor.isInitialized()) {
+			encryptor.setPassword(password);
+			encryptor.setAlgorithm("PBEWithMD5AndTripleDES");
+			encryptor.setPoolSize(4);
+		}
+
 		logger.info("Loading property files...");
-		
+
 		Properties hosts = loadHosts(hostsFile);
 
 		String hostName = detectHostName();
@@ -394,7 +396,8 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 
 	}
 
-	protected EncryptableProperties loadProperties(String propertiesPath) throws Exception {
+	protected EncryptableProperties loadProperties(String propertiesPath)
+			throws Exception {
 
 		List<EncryptableProperties> all = new ArrayList<>();
 
