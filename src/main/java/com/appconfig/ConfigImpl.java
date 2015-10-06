@@ -20,6 +20,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.PostConstruct;
 
 import org.apache.commons.beanutils.ConvertUtilsBean;
+import org.jasypt.encryption.pbe.PooledPBEStringEncryptor;
+import org.jasypt.properties.EncryptableProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,22 +65,20 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 	private final static Logger log = LoggerFactory.getLogger(ConfigImpl.class);
 	private final ConvertUtilsBean bean = new ConvertUtilsBean();
 
+	protected PooledPBEStringEncryptor encryptor = new PooledPBEStringEncryptor();
 	private String fileName = "default.properties";
+
 	@Value("${properties.hostsFilePath}")
 	protected String hostsFile;
-
 	protected InetAddress inet = InetAddress.getLocalHost();
-
+	
 	private final ConcurrentHashMap<String, Set<ConfigChangeListener>> listeners = new ConcurrentHashMap<String, Set<ConfigChangeListener>>();
+	protected String password = "";
 
-	private final AtomicReference<Properties> properties = new AtomicReference<>(
-			new Properties());
+	private final AtomicReference<EncryptableProperties> properties = new AtomicReference<>(
+			new EncryptableProperties(encryptor));
 
 	private boolean searchClasspath = true;
-
-	public void setSearchClasspath(boolean searchClasspath) {
-		this.searchClasspath = searchClasspath;
-	}
 
 	@Autowired(required = false)
 	protected Environment springProfiles;
@@ -219,43 +219,67 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 		return hostName;
 	}
 
+	private EncryptableProperties fetchProperties(String propertiesPath) {
+
+		EncryptableProperties p = new EncryptableProperties(encryptor);
+
+		Resource resource = new DefaultResourceLoader()
+				.getResource(propertiesPath + "/" + fileName);
+
+		// Check if a spring properties file exists
+		if (!resource.exists()) {
+			resource = new DefaultResourceLoader().getResource(propertiesPath
+					+ "/application.properties");
+		}
+
+		// Search for default.properties file in parent folders
+		if (resource.exists()) {
+
+			try (InputStream stream2 = resource.getInputStream()) {
+
+				log.info("Found properties file: " + propertiesPath + "/"
+						+ resource.getFilename());
+				p.load(stream2);
+
+			} catch (IOException e) {
+
+				// file not found...no issue, keep going
+				if (StringUtils.hasText(e.getMessage())
+						&& (e.getMessage().contains("code: 403") || e
+								.getMessage().contains("code: 404"))) {
+
+					// Do nothing here since we'll just keep looping with parent
+					// path anyway
+
+				} else {
+					Throwables.propagate(e);
+				}
+			}
+		}
+
+		return p;
+	}
+
 	@Override
 	public <T> T getDecryptedProperty(String key, Class<T> clazz) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
+	public String getFileName() {
+		return fileName;
+	}
+
 	public String getHostsFile() {
 		return hostsFile;
 	}
 
-	protected Properties getLoadedProperties() {
+	protected EncryptableProperties getLoadedProperties() {
 		return properties.get();
 	}
 
 	@Override
 	public <T> T getProperty(String key, Class<T> clazz) {
-
-		// long now = System.currentTimeMillis();
-
-		// boolean sync = false;
-		// synchronized (lastRefresh) {
-		// if ((now - lastRefresh) > (ttl.get() * 1000)) {
-		// sync = true;
-		// lastRefresh = System.currentTimeMillis();
-		// }
-		// }
-		//
-		// if (sync) {
-		//
-		// try {
-		// init();
-		// } catch (Exception e) {
-		// log.error("Attempting to reload config has failed", e);
-		// }
-		//
-		// sync = false;
-		// }
 
 		String property = properties.get().getProperty(key);
 
@@ -282,6 +306,10 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 	@PostConstruct
 	protected void init() throws Exception {
 
+		encryptor.setPassword(password);
+		encryptor.setAlgorithm("PBEWithMD5AndTripleDES");
+		encryptor.setPoolSize(4);
+		
 		logger.info("Loading property files...");
 		
 		Properties hosts = loadHosts(hostsFile);
@@ -303,7 +331,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 
 		}
 
-		Properties ps = loadProperties(propertiesFile);
+		EncryptableProperties ps = loadProperties(propertiesFile);
 
 		if (ps.isEmpty()) {
 			throw new FileNotFoundException(
@@ -353,7 +381,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 					+ " couldn't be found");
 		}
 
-		Properties hosts = new Properties();
+		Properties hosts = new EncryptableProperties(encryptor);
 		try (InputStream stream = resource.getInputStream()) {
 
 			hosts.load(stream);
@@ -366,9 +394,9 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 
 	}
 
-	protected Properties loadProperties(String propertiesPath) throws Exception {
+	protected EncryptableProperties loadProperties(String propertiesPath) throws Exception {
 
-		List<Properties> all = new ArrayList<>();
+		List<EncryptableProperties> all = new ArrayList<>();
 
 		if (StringUtils.hasText(propertiesPath)) {
 
@@ -388,7 +416,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 
 		Collections.reverse(all); // sort from root to highest
 
-		Properties ps = new Properties();
+		EncryptableProperties ps = new EncryptableProperties(encryptor);
 
 		for (Properties p : all) {
 			ps.putAll(p); // replace root properties with higher level
@@ -420,6 +448,10 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 		this.springProfiles = environment;
 	}
 
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
+	}
+
 	public void setHostsFile(String hostsFile) {
 		this.hostsFile = hostsFile;
 	}
@@ -438,6 +470,10 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 		}
 	}
 
+	public void setSearchClasspath(boolean searchClasspath) {
+		this.searchClasspath = searchClasspath;
+	}
+
 	private String stripDir(String path) {
 
 		int i = path.lastIndexOf("/");
@@ -449,52 +485,11 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 
 	}
 
-	private Properties fetchProperties(String propertiesPath) {
-
-		Properties p = new Properties();
-
-		Resource resource = new DefaultResourceLoader()
-				.getResource(propertiesPath + "/" + fileName);
-
-		// Check if a spring properties file exists
-		if (!resource.exists()) {
-			resource = new DefaultResourceLoader().getResource(propertiesPath
-					+ "/application.properties");
-		}
-
-		// Search for default.properties file in parent folders
-		if (resource.exists()) {
-
-			try (InputStream stream2 = resource.getInputStream()) {
-
-				log.info("Found properties file: " + propertiesPath + "/"
-						+ resource.getFilename());
-				p.load(stream2);
-
-			} catch (IOException e) {
-
-				// file not found...no issue, keep going
-				if (StringUtils.hasText(e.getMessage())
-						&& (e.getMessage().contains("code: 403") || e
-								.getMessage().contains("code: 404"))) {
-
-					// Do nothing here since we'll just keep looping with parent
-					// path anyway
-
-				} else {
-					Throwables.propagate(e);
-				}
-			}
-		}
-
-		return p;
+	public String getPassword() {
+		return password;
 	}
 
-	public String getFileName() {
-		return fileName;
-	}
-
-	public void setFileName(String fileName) {
-		this.fileName = fileName;
+	public void setPassword(String password) {
+		this.password = password;
 	}
 }

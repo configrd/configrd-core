@@ -1,6 +1,7 @@
 package com.appconfig;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
@@ -8,6 +9,7 @@ import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 
+@DirtiesContext
 @ActiveProfiles("QA")
 @ContextConfiguration("classpath:META-INF/spring/test-spring-configurer-timer.xml")
 public class TestTimer extends AbstractTestNGSpringContextTests {
