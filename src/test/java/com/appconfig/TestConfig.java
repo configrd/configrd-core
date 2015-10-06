@@ -7,7 +7,9 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -17,6 +19,16 @@ public class TestConfig {
 	private InetAddress inet;
 	private String host = "http://static.ca.pixtulate.com";
 	private ConfigImpl config;
+
+	@BeforeClass
+	public void env() {
+		System.setProperty("env", "QA");
+	}
+
+	@AfterClass
+	public void destroyEnv() {
+		System.setProperty("env", "");
+	}
 
 	@BeforeMethod
 	public void setUp() throws Exception {
