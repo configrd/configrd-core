@@ -1,4 +1,4 @@
-package com.appconfig;
+package com.appx;
 
 import org.jasypt.encryption.pbe.PooledPBEStringEncryptor;
 import org.slf4j.Logger;

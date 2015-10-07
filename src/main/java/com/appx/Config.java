@@ -1,4 +1,4 @@
-package com.appconfig;
+package com.appx;
 
 /**
  * Interface for configuration implementations.

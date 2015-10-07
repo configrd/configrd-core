@@ -1,4 +1,4 @@
-package com.appconfig;
+package com.appx;
 
 import java.net.InetAddress;
 import java.util.Properties;
@@ -12,6 +12,8 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+
+import com.appx.HierarchicalPropertyPlaceholderConfigurer;
 
 public class TestConfig {
 

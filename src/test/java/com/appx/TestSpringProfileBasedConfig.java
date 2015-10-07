@@ -1,4 +1,4 @@
-package com.appconfig;
+package com.appx;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;

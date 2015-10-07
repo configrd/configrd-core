@@ -1,4 +1,4 @@
-package com.appconfig;
+package com.appx;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
@@ -8,6 +8,8 @@ import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
+
+import com.appx.Config;
 
 @DirtiesContext
 @ActiveProfiles("QA")

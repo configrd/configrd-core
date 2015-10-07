@@ -1,4 +1,4 @@
-package com.appconfig;
+package com.appx;
 
 public interface ConfigChangeListener {
 	

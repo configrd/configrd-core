@@ -1,4 +1,4 @@
-package com.appconfig;
+package com.appx;
 
 import java.io.File;
 import java.io.FileNotFoundException;

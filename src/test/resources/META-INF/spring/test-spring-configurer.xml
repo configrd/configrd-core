@@ -4,11 +4,11 @@
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.1.xsd">
 
-	<bean class="com.appconfig.HierarchicalPropertyPlaceholderConfigurer" init-method="init" >
+	<bean class="com.appx.HierarchicalPropertyPlaceholderConfigurer" init-method="init" >
 		<constructor-arg value="classpath:/env/hosts.properties" />
 	</bean>
 
-	<bean class="com.appconfig.SampleClass">
+	<bean class="com.appx.SampleClass">
 		<property name="someOtherValue" value="${property.3.name}" />
 	</bean>
 
