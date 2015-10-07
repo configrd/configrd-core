@@ -42,16 +42,4 @@ public interface Config {
      */
     public void deregister(String key, ConfigChangeListener listener);
     
-    /**
-     * Same as getProperty() but performs a symmetric de-crypt operation before returning the value. This can be used
-     * for de-crypting password values from an encrypted format in the property file before reading them. The underlying
-     * implementation must provide the de-cryption configuration. If the implementation doesn't support de-cryption, 
-     * it should just return the value as is. 
-     * 
-     * @param key
-     * @param clazz
-     * @return
-     */
-    public <T>T getDecryptedProperty(String key, Class<T> clazz);
-
 }

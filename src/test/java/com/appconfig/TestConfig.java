@@ -18,7 +18,7 @@ public class TestConfig {
 	@Mock
 	private InetAddress inet;
 	private String host = "http://static.ca.pixtulate.com";
-	private ConfigImpl config;
+	private HierarchicalPropertyPlaceholderConfigurer config;
 
 	@BeforeClass
 	public void env() {
@@ -37,7 +37,7 @@ public class TestConfig {
 
 		Mockito.doReturn("michelangello").when(inet).getHostName();
 
-		config = new ConfigImpl("classpath:/env/hosts.properties");
+		config = new HierarchicalPropertyPlaceholderConfigurer("classpath:/env/hosts.properties");
 		config.setPassword("secret");
 		config.inet = inet;
 		config.init();

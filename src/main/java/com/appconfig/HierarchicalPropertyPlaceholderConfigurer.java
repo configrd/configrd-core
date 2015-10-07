@@ -47,7 +47,7 @@ import com.google.common.base.Throwables;
  *
  */
 @Service
-public class ConfigImpl extends PropertyPlaceholderConfigurer implements
+public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlaceholderConfigurer implements
 		Config, EnvironmentAware {
 
 	private class ReloadTask extends TimerTask {
@@ -62,7 +62,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 		}
 	}
 
-	private final static Logger log = LoggerFactory.getLogger(ConfigImpl.class);
+	private final static Logger log = LoggerFactory.getLogger(HierarchicalPropertyPlaceholderConfigurer.class);
 	private final ConvertUtilsBean bean = new ConvertUtilsBean();
 
 	protected PooledPBEStringEncryptor encryptor = new PooledPBEStringEncryptor();
@@ -90,7 +90,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 	 * 
 	 * @throws Exception
 	 */
-	public ConfigImpl() throws Exception {
+	public HierarchicalPropertyPlaceholderConfigurer() throws Exception {
 	}
 
 	/**
@@ -99,7 +99,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 	 *            The path of the hosts.properties file
 	 * @throws Exception
 	 */
-	public ConfigImpl(String path) throws Exception {
+	public HierarchicalPropertyPlaceholderConfigurer(String path) throws Exception {
 		this.hostsFile = path;
 	}
 
@@ -112,7 +112,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 	 *            be refreshed. Defaults to 10 minutes.
 	 * @throws Exception
 	 */
-	public ConfigImpl(String path, int refresh) throws Exception {
+	public HierarchicalPropertyPlaceholderConfigurer(String path, int refresh) throws Exception {
 		this.hostsFile = path;
 		setRefreshRate(refresh);
 	}
@@ -123,7 +123,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 	 *            The path of the hosts.properties file
 	 * @throws Exception
 	 */
-	public ConfigImpl(String path, String fileName) throws Exception {
+	public HierarchicalPropertyPlaceholderConfigurer(String path, String fileName) throws Exception {
 		this.hostsFile = path;
 		this.fileName = fileName;
 	}
@@ -137,7 +137,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 	 *            be refreshed. Defaults to 10 minutes.
 	 * @throws Exception
 	 */
-	public ConfigImpl(String path, String fileName, int refresh)
+	public HierarchicalPropertyPlaceholderConfigurer(String path, String fileName, int refresh)
 			throws Exception {
 		this.hostsFile = path;
 		this.fileName = fileName;
@@ -219,9 +219,9 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 		return hostName;
 	}
 
-	private EncryptableProperties fetchProperties(String propertiesPath) {
+	private Properties fetchProperties(String propertiesPath) {
 
-		EncryptableProperties p = new EncryptableProperties(encryptor);
+		Properties p = new Properties();
 
 		Resource resource = new DefaultResourceLoader()
 				.getResource(propertiesPath + "/" + fileName);
@@ -258,12 +258,6 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 		}
 
 		return p;
-	}
-
-	@Override
-	public <T> T getDecryptedProperty(String key, Class<T> clazz) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	public String getFileName() {
@@ -399,7 +393,7 @@ public class ConfigImpl extends PropertyPlaceholderConfigurer implements
 	protected EncryptableProperties loadProperties(String propertiesPath)
 			throws Exception {
 
-		List<EncryptableProperties> all = new ArrayList<>();
+		List<Properties> all = new ArrayList<>();
 
 		if (StringUtils.hasText(propertiesPath)) {
 
