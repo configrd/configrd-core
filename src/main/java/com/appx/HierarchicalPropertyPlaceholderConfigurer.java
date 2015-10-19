@@ -47,8 +47,8 @@ import com.google.common.base.Throwables;
  *
  */
 @Service
-public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlaceholderConfigurer implements
-		Config, EnvironmentAware {
+public class HierarchicalPropertyPlaceholderConfigurer extends
+		PropertyPlaceholderConfigurer implements Config, EnvironmentAware {
 
 	private class ReloadTask extends TimerTask {
 
@@ -62,7 +62,8 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 		}
 	}
 
-	private final static Logger log = LoggerFactory.getLogger(HierarchicalPropertyPlaceholderConfigurer.class);
+	private final static Logger log = LoggerFactory
+			.getLogger(HierarchicalPropertyPlaceholderConfigurer.class);
 	private final ConvertUtilsBean bean = new ConvertUtilsBean();
 
 	protected PooledPBEStringEncryptor encryptor = new PooledPBEStringEncryptor();
@@ -99,7 +100,8 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 	 *            The path of the hosts.properties file
 	 * @throws Exception
 	 */
-	public HierarchicalPropertyPlaceholderConfigurer(String path) throws Exception {
+	public HierarchicalPropertyPlaceholderConfigurer(String path)
+			throws Exception {
 		this.hostsFile = path;
 	}
 
@@ -112,7 +114,8 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 	 *            be refreshed. Defaults to 10 minutes.
 	 * @throws Exception
 	 */
-	public HierarchicalPropertyPlaceholderConfigurer(String path, int refresh) throws Exception {
+	public HierarchicalPropertyPlaceholderConfigurer(String path, int refresh)
+			throws Exception {
 		this.hostsFile = path;
 		setRefreshRate(refresh);
 	}
@@ -123,7 +126,8 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 	 *            The path of the hosts.properties file
 	 * @throws Exception
 	 */
-	public HierarchicalPropertyPlaceholderConfigurer(String path, String fileName) throws Exception {
+	public HierarchicalPropertyPlaceholderConfigurer(String path,
+			String fileName) throws Exception {
 		this.hostsFile = path;
 		this.fileName = fileName;
 	}
@@ -137,8 +141,8 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 	 *            be refreshed. Defaults to 10 minutes.
 	 * @throws Exception
 	 */
-	public HierarchicalPropertyPlaceholderConfigurer(String path, String fileName, int refresh)
-			throws Exception {
+	public HierarchicalPropertyPlaceholderConfigurer(String path,
+			String fileName, int refresh) throws Exception {
 		this.hostsFile = path;
 		this.fileName = fileName;
 		setRefreshRate(refresh);
@@ -270,6 +274,10 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 
 	protected EncryptableProperties getLoadedProperties() {
 		return properties.get();
+	}
+
+	public String getPassword() {
+		return password;
 	}
 
 	@Override
@@ -423,6 +431,12 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 		return ps;
 
 	}
+	
+	@Override
+	public void register(ConfigChangeListener listener) {
+		// TODO Auto-generated method stub
+		
+	}
 
 	@Override
 	public void register(String key, ConfigChangeListener listener) {
@@ -453,6 +467,10 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 		this.hostsFile = hostsFile;
 	}
 
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
 	public void setRefreshRate(Integer refresh) {
 
 		if (refresh == 0L || refresh == null) {
@@ -480,13 +498,5 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 
 		return "";
 
-	}
-
-	public String getPassword() {
-		return password;
-	}
-
-	public void setPassword(String password) {
-		this.password = password;
 	}
 }

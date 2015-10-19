@@ -29,6 +29,14 @@ public interface Config {
      * Register a property change listener which will be triggered with any updated
      * property values when detected. Allows components to subscribe to property changes.
      * 
+     * @param listener - the listener instance which will be triggered in the event of the property changing
+     */
+    public void register(ConfigChangeListener listener);
+    
+    /**
+     * Register a property change listener which will be triggered with any updated
+     * property values when detected. Allows components to subscribe to property changes.
+     * 
      * @param key - key name of the property to register the listener against
      * @param listener - the listener instance which will be triggered in the event of the property changing
      */
