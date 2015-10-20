@@ -19,10 +19,10 @@ public class ValueInjector implements ConfigChangeListener {
 	private Config config;
 
 	@PostConstruct
-	private void register(){
-		
+	private void register() {
+
 	}
-	
+
 	@Override
 	public void propertyChanged(String key, Object value) {
 
