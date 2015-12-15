@@ -20,8 +20,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.PostConstruct;
 
 import org.apache.commons.beanutils.ConvertUtilsBean;
-import org.jasypt.encryption.pbe.PooledPBEStringEncryptor;
 import org.jasypt.properties.EncryptableProperties;
+import org.jasypt.util.text.BasicTextEncryptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,7 +66,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
       .getLogger(HierarchicalPropertyPlaceholderConfigurer.class);
   private final ConvertUtilsBean bean = new ConvertUtilsBean();
 
-  protected PooledPBEStringEncryptor encryptor = new PooledPBEStringEncryptor();
+  protected BasicTextEncryptor encryptor = new BasicTextEncryptor();
   private String fileName = "default.properties";
 
   @Value("${properties.hostsFilePath}")
@@ -295,12 +295,8 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 
   @PostConstruct
   protected void init() throws Exception {
-
-    if (!encryptor.isInitialized()) {
-      encryptor.setPassword(password);
-      encryptor.setAlgorithm("PBEWithMD5AndTripleDES");
-      encryptor.setPoolSize(4);
-    }
+    
+    encryptor.setPassword(password);
 
     logger.info("Loading property files...");
 

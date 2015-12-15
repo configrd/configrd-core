@@ -189,7 +189,7 @@ public class TestConfig {
 
     String value = config.getProperty("property.6.name", String.class);
     Assert.assertNotNull(value);
-    Assert.assertNotEquals(value, "92W4NeYZYtuFamXo0mtlWq2VFL5AOfTI");
+    Assert.assertNotEquals(value, "NvuRfrVnqL8yDunzmutaCa6imIzh6QFL");
     Assert.assertEquals(value, "password");
   }
 
