@@ -2,12 +2,6 @@ language: java
 
 jdk: oraclejdk7
 
-before_script:
-  - if [[ $SHIPPABLE_JDK_VERSION == "oraclejdk7" ]] ; then export JAVA_HOME="/usr/lib/jvm/java-7-oracle"; export PATH="$PATH:/usr/lib/jvm/java-7-oracle/bin"; export java_path="/usr/lib/jvm/java-7-oracle/jre/bin/java"; fi  
-  - if [[ $SHIPPABLE_JDK_VERSION == "oraclejdk8" ]] ; then export JAVA_HOME="/usr/lib/jvm/java-8-oracle"; export PATH="$PATH:/usr/lib/jvm/java-8-oracle/bin"; export java_path="/usr/lib/jvm/java-8-oracle/jre/bin/java"; fi
-  - update-alternatives --set java $java_path
-  - java -version
-
 before_install:
   - apt-get update
   - apt-get install -y maven
@@ -17,7 +11,9 @@ branches:
     - master
 
 script:
-  - mvn clean install -U -Daws.accessKeyId=AKIAIENSRCCLALIZBRUA -Daws.secretKey=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
+  - mvn clean install -DskipTests -Daws.accessKeyId=AKIAIENSRCCLALIZBRUA -Daws.secretKey=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
 
 after_success:
+  - mvn cobertura:cobertura
+  - mvn test
   - mvn deploy -Dmaven.install.skip=true -Daws.accessKeyId=AKIAIENSRCCLALIZBRUA -Daws.secretKey=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
