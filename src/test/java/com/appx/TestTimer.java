@@ -16,26 +16,26 @@ import com.appx.Config;
 @ContextConfiguration("classpath:META-INF/spring/test-spring-configurer-timer.xml")
 public class TestTimer extends AbstractTestNGSpringContextTests {
 
-	@Autowired
-	private Config config;
+  @Autowired
+  private Config config;
 
-	static {
-		System.setProperty("hostname", "michelangello-custom");
-	}
+  static {
+    System.setProperty("hostname", "michelangello-custom");
+  }
 
-	@Test
-	public void testTimerReload() throws Exception {
-		
-		String value = config.getProperty("property.5.name", String.class);
-		Assert.assertNotNull(value);
-		Assert.assertEquals(value, "classpath");
-		
-		Thread.sleep(4000);		
-	}
+  @Test
+  public void testTimerReload() throws Exception {
 
-	@AfterClass
-	public void tearDown() {
-		System.setProperty("env", "");
-	}
+    String value = config.getProperty("property.5.name", String.class);
+    Assert.assertNotNull(value);
+    Assert.assertEquals(value, "classpath");
+
+    Thread.sleep(4000);
+  }
+
+  @AfterClass
+  public void tearDown() {
+    System.setProperty("env", "");
+  }
 
 }

@@ -47,456 +47,436 @@ import com.google.common.base.Throwables;
  *
  */
 @Service
-public class HierarchicalPropertyPlaceholderConfigurer extends
-		PropertyPlaceholderConfigurer implements Config, EnvironmentAware {
-
-	private class ReloadTask extends TimerTask {
-
-		@Override
-		public void run() {
-			try {
-				init();
-			} catch (Exception e) {
-				logger.error("Error refreshing configs", e);
-			}
-		}
-	}
-
-	private final static Logger log = LoggerFactory
-			.getLogger(HierarchicalPropertyPlaceholderConfigurer.class);
-	private final ConvertUtilsBean bean = new ConvertUtilsBean();
-
-	protected PooledPBEStringEncryptor encryptor = new PooledPBEStringEncryptor();
-	private String fileName = "default.properties";
-
-	@Value("${properties.hostsFilePath}")
-	protected String hostsFile;
-	protected InetAddress inet = InetAddress.getLocalHost();
-
-	private final ConcurrentHashMap<String, Set<ConfigChangeListener>> listeners = new ConcurrentHashMap<String, Set<ConfigChangeListener>>();
-	protected String password = "secret";
-
-	private final AtomicReference<EncryptableProperties> properties = new AtomicReference<>(
-			new EncryptableProperties(encryptor));
-
-	private boolean searchClasspath = true;
-
-	@Autowired(required = false)
-	protected Environment springProfiles;
-
-	private Timer timer = new Timer(true);
-
-	/**
-	 * Set path to hosts.properties file using the setter.
-	 * 
-	 * @throws Exception
-	 */
-	public HierarchicalPropertyPlaceholderConfigurer() throws Exception {
-	}
-
-	/**
-	 * 
-	 * @param path
-	 *            The path of the hosts.properties file
-	 * @throws Exception
-	 */
-	public HierarchicalPropertyPlaceholderConfigurer(String path)
-			throws Exception {
-		this.hostsFile = path;
-	}
-
-	/**
-	 * 
-	 * @param path
-	 *            - The path of the hosts.properties file
-	 * @param refresh
-	 *            - The period in seconds at which the config properties should
-	 *            be refreshed. Defaults to 10 minutes.
-	 * @throws Exception
-	 */
-	public HierarchicalPropertyPlaceholderConfigurer(String path, int refresh)
-			throws Exception {
-		this.hostsFile = path;
-		setRefreshRate(refresh);
-	}
-
-	/**
-	 * 
-	 * @param path
-	 *            The path of the hosts.properties file
-	 * @throws Exception
-	 */
-	public HierarchicalPropertyPlaceholderConfigurer(String path,
-			String fileName) throws Exception {
-		this.hostsFile = path;
-		this.fileName = fileName;
-	}
-
-	/**
-	 * 
-	 * @param path
-	 *            - The path of the hosts.properties file
-	 * @param refresh
-	 *            - The period in seconds at which the config properties should
-	 *            be refreshed. Defaults to 10 minutes.
-	 * @throws Exception
-	 */
-	public HierarchicalPropertyPlaceholderConfigurer(String path,
-			String fileName, int refresh) throws Exception {
-		this.hostsFile = path;
-		this.fileName = fileName;
-		setRefreshRate(refresh);
-	}
-
-	@Override
-	public void deregister(String key, ConfigChangeListener listener) {
+public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlaceholderConfigurer
+    implements Config, EnvironmentAware {
+
+  private class ReloadTask extends TimerTask {
+
+    @Override
+    public void run() {
+      try {
+        init();
+      } catch (Exception e) {
+        logger.error("Error refreshing configs", e);
+      }
+    }
+  }
+
+  private final static Logger log = LoggerFactory
+      .getLogger(HierarchicalPropertyPlaceholderConfigurer.class);
+  private final ConvertUtilsBean bean = new ConvertUtilsBean();
+
+  protected PooledPBEStringEncryptor encryptor = new PooledPBEStringEncryptor();
+  private String fileName = "default.properties";
+
+  @Value("${properties.hostsFilePath}")
+  protected String hostsFile;
+  protected InetAddress inet = InetAddress.getLocalHost();
+
+  private final ConcurrentHashMap<String, Set<ConfigChangeListener>> listeners =
+      new ConcurrentHashMap<String, Set<ConfigChangeListener>>();
+  protected String password = "secret";
+
+  private final AtomicReference<EncryptableProperties> properties = new AtomicReference<>(
+      new EncryptableProperties(encryptor));
+
+  private boolean searchClasspath = true;
+
+  @Autowired(required = false)
+  protected Environment springProfiles;
+
+  private Timer timer = new Timer(true);
+
+  /**
+   * Set path to hosts.properties file using the setter.
+   * 
+   * @throws Exception
+   */
+  public HierarchicalPropertyPlaceholderConfigurer() throws Exception {}
+
+  /**
+   * 
+   * @param path The path of the hosts.properties file
+   * @throws Exception
+   */
+  public HierarchicalPropertyPlaceholderConfigurer(String path) throws Exception {
+    this.hostsFile = path;
+  }
+
+  /**
+   * 
+   * @param path - The path of the hosts.properties file
+   * @param refresh - The period in seconds at which the config properties should be refreshed.
+   *        Defaults to 10 minutes.
+   * @throws Exception
+   */
+  public HierarchicalPropertyPlaceholderConfigurer(String path, int refresh) throws Exception {
+    this.hostsFile = path;
+    setRefreshRate(refresh);
+  }
+
+  /**
+   * 
+   * @param path The path of the hosts.properties file
+   * @throws Exception
+   */
+  public HierarchicalPropertyPlaceholderConfigurer(String path, String fileName) throws Exception {
+    this.hostsFile = path;
+    this.fileName = fileName;
+  }
+
+  /**
+   * 
+   * @param path - The path of the hosts.properties file
+   * @param refresh - The period in seconds at which the config properties should be refreshed.
+   *        Defaults to 10 minutes.
+   * @throws Exception
+   */
+  public HierarchicalPropertyPlaceholderConfigurer(String path, String fileName, int refresh)
+      throws Exception {
+    this.hostsFile = path;
+    this.fileName = fileName;
+    setRefreshRate(refresh);
+  }
+
+  @Override
+  public void deregister(String key, ConfigChangeListener listener) {
+
+    if (listeners.containsKey(key)) {
+      listeners.get(key).remove(listener);
+    }
+  }
+
+  /**
+   * Attempt to detect environment of the application.
+   * 
+   * @return environment string
+   */
+  protected String detectEnvironment() {
 
-		if (listeners.containsKey(key)) {
-			listeners.get(key).remove(listener);
-		}
-	}
+    String env = null;
 
-	/**
-	 * Attempt to detect environment of the application.
-	 * 
-	 * @return environment string
-	 */
-	protected String detectEnvironment() {
+    if (springProfiles != null && springProfiles.getActiveProfiles() != null
+        && springProfiles.getActiveProfiles().length > 0) {
+      env = springProfiles.getActiveProfiles()[0];
+    }
 
-		String env = null;
+    try {
 
-		if (springProfiles != null
-				&& springProfiles.getActiveProfiles() != null
-				&& springProfiles.getActiveProfiles().length > 0) {
-			env = springProfiles.getActiveProfiles()[0];
-		}
+      env = StringUtils.hasText(env) ? env : System.getProperty("env");
 
-		try {
+      if (!StringUtils.hasText(env)) {
+        log.info("No environment variable detected under 'spring.profiles' or system property 'env'");
+      } else {
+        log.info("Detected environment: " + env);
+      }
 
-			env = StringUtils.hasText(env) ? env : System.getProperty("env");
+    } catch (Exception e) {
+      log.error("Error while detecting environment", e);
+    }
 
-			if (!StringUtils.hasText(env)) {
-				log.info("No environment variable detected under 'spring.profiles' or system property 'env'");
-			} else {
-				log.info("Detected environment: " + env);
-			}
+    return env;
+  }
 
-		} catch (Exception e) {
-			log.error("Error while detecting environment", e);
-		}
+  /**
+   * Reads the underlying host's name. This is used to match this host against its configuration.
+   * You can programmatically override the hostname value by setting System.setProperty("hostname",
+   * "value").
+   * 
+   * @return hostname
+   */
+  protected String detectHostName() {
 
-		return env;
-	}
+    String hostName = null;
 
-	/**
-	 * Reads the underlying host's name. This is used to match this host against
-	 * its configuration. You can programmatically override the hostname value
-	 * by setting System.setProperty("hostname", "value").
-	 * 
-	 * @return hostname
-	 */
-	protected String detectHostName() {
+    try {
 
-		String hostName = null;
+      hostName =
+          StringUtils.hasText(System.getProperty("hostname")) ? System.getProperty("hostname")
+              : inet.getHostName();
 
-		try {
+      if (!StringUtils.hasText(hostName)) {
+        throw new UnknownHostException(
+            "Unable to resolve host in order to resolve hosts file config");
+      }
 
-			hostName = StringUtils.hasText(System.getProperty("hostname")) ? System
-					.getProperty("hostname") : inet.getHostName();
+      if (hostName.contains(".")) {
+        hostName = hostName.substring(0, hostName.indexOf("."));
+      }
 
-			if (!StringUtils.hasText(hostName)) {
-				throw new UnknownHostException(
-						"Unable to resolve host in order to resolve hosts file config");
-			}
+      log.info("Resolved hostname to: " + hostName);
 
-			if (hostName.contains(".")) {
-				hostName = hostName.substring(0, hostName.indexOf("."));
-			}
+    } catch (UnknownHostException ex) {
+      log.error("Can't resolve hostname", ex);
+      Throwables.propagate(ex);
+    }
 
-			log.info("Resolved hostname to: " + hostName);
+    return hostName;
+  }
 
-		} catch (UnknownHostException ex) {
-			log.error("Can't resolve hostname", ex);
-			Throwables.propagate(ex);
-		}
+  private Properties fetchProperties(String propertiesPath) {
 
-		return hostName;
-	}
+    Properties p = new Properties();
 
-	private Properties fetchProperties(String propertiesPath) {
+    Resource resource = new DefaultResourceLoader().getResource(propertiesPath + "/" + fileName);
 
-		Properties p = new Properties();
+    // Check if a spring properties file exists
+    if (!resource.exists()) {
+      resource =
+          new DefaultResourceLoader().getResource(propertiesPath + "/application.properties");
+    }
 
-		Resource resource = new DefaultResourceLoader()
-				.getResource(propertiesPath + "/" + fileName);
+    // Search for default.properties file in parent folders
+    if (resource.exists()) {
 
-		// Check if a spring properties file exists
-		if (!resource.exists()) {
-			resource = new DefaultResourceLoader().getResource(propertiesPath
-					+ "/application.properties");
-		}
+      try (InputStream stream2 = resource.getInputStream()) {
 
-		// Search for default.properties file in parent folders
-		if (resource.exists()) {
+        log.info("Found properties file: " + propertiesPath + "/" + resource.getFilename());
+        p.load(stream2);
 
-			try (InputStream stream2 = resource.getInputStream()) {
+      } catch (IOException e) {
 
-				log.info("Found properties file: " + propertiesPath + "/"
-						+ resource.getFilename());
-				p.load(stream2);
+        // file not found...no issue, keep going
+        if (StringUtils.hasText(e.getMessage())
+            && (e.getMessage().contains("code: 403") || e.getMessage().contains("code: 404"))) {
 
-			} catch (IOException e) {
+          // Do nothing here since we'll just keep looping with parent
+          // path anyway
 
-				// file not found...no issue, keep going
-				if (StringUtils.hasText(e.getMessage())
-						&& (e.getMessage().contains("code: 403") || e
-								.getMessage().contains("code: 404"))) {
+        } else {
+          Throwables.propagate(e);
+        }
+      }
+    }
 
-					// Do nothing here since we'll just keep looping with parent
-					// path anyway
+    return p;
+  }
 
-				} else {
-					Throwables.propagate(e);
-				}
-			}
-		}
+  public String getFileName() {
+    return fileName;
+  }
 
-		return p;
-	}
+  public String getHostsFile() {
+    return hostsFile;
+  }
 
-	public String getFileName() {
-		return fileName;
-	}
+  protected EncryptableProperties getLoadedProperties() {
+    return properties.get();
+  }
 
-	public String getHostsFile() {
-		return hostsFile;
-	}
+  public String getPassword() {
+    return password;
+  }
 
-	protected EncryptableProperties getLoadedProperties() {
-		return properties.get();
-	}
+  @Override
+  public <T> T getProperty(String key, Class<T> clazz) {
 
-	public String getPassword() {
-		return password;
-	}
+    String property = properties.get().getProperty(key);
 
-	@Override
-	public <T> T getProperty(String key, Class<T> clazz) {
+    if (clazz.equals(String.class))
+      return (T) property;
+    else if (property != null)
+      return (T) bean.convert(property, clazz);
+    else
+      return null;
 
-		String property = properties.get().getProperty(key);
+  }
 
-		if (clazz.equals(String.class))
-			return (T) property;
-		else if (property != null)
-			return (T) bean.convert(property, clazz);
-		else
-			return null;
+  public <T> T getProperty(String key, Class<T> clazz, T value) {
 
-	}
+    T val = getProperty(key, clazz);
 
-	public <T> T getProperty(String key, Class<T> clazz, T value) {
+    if (val != null)
+      return val;
 
-		T val = getProperty(key, clazz);
+    return value;
 
-		if (val != null)
-			return val;
+  }
 
-		return value;
+  @PostConstruct
+  protected void init() throws Exception {
 
-	}
+    if (!encryptor.isInitialized()) {
+      encryptor.setPassword(password);
+      encryptor.setAlgorithm("PBEWithMD5AndTripleDES");
+      encryptor.setPoolSize(4);
+    }
 
-	@PostConstruct
-	protected void init() throws Exception {
+    logger.info("Loading property files...");
 
-		if (!encryptor.isInitialized()) {
-			encryptor.setPassword(password);
-			encryptor.setAlgorithm("PBEWithMD5AndTripleDES");
-			encryptor.setPoolSize(4);
-		}
+    Properties hosts = loadHosts(hostsFile);
 
-		logger.info("Loading property files...");
+    String hostName = detectHostName();
+    String environment = detectEnvironment();
 
-		Properties hosts = loadHosts(hostsFile);
+    String propertiesFile = hosts.getProperty(hostName);
 
-		String hostName = detectHostName();
-		String environment = detectEnvironment();
+    // Attempt environment as a backup
+    if (!StringUtils.hasText(propertiesFile) && StringUtils.hasText(environment)) {
 
-		String propertiesFile = hosts.getProperty(hostName);
+      propertiesFile = hosts.getProperty(environment);
 
-		// Attempt environment as a backup
-		if (!StringUtils.hasText(propertiesFile)
-				&& StringUtils.hasText(environment)) {
+    } else if (!StringUtils.hasText(propertiesFile)) {
 
-			propertiesFile = hosts.getProperty(environment);
+      propertiesFile = hosts.getProperty("*");
 
-		} else if (!StringUtils.hasText(propertiesFile)) {
+    }
 
-			propertiesFile = hosts.getProperty("*");
+    EncryptableProperties ps = loadProperties(propertiesFile);
 
-		}
+    if (ps.isEmpty()) {
+      throw new FileNotFoundException("Counldn't find any properties for host " + hostName
+          + " or environment " + environment);
+    }
 
-		EncryptableProperties ps = loadProperties(propertiesFile);
+    properties.set(ps);
 
-		if (ps.isEmpty()) {
-			throw new FileNotFoundException(
-					"Counldn't find any properties for host " + hostName
-							+ " or environment " + environment);
-		}
+    String ttl = (String) properties.get().get("config.ttl");
+    if (ttl != null) {
 
-		properties.set(ps);
+      Integer lttl = Integer.valueOf(ttl);
 
-		String ttl = (String) properties.get().get("config.ttl");
-		if (ttl != null) {
+      log.info("Setting config refresh rate to: " + lttl + " seconds.");
+      setRefreshRate(lttl);
+    }
 
-			Integer lttl = Integer.valueOf(ttl);
+    // bootstrap setting log level here
+    if (StringUtils.hasText(properties.get().getProperty("log.root.level"))) {
+      LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+      ch.qos.logback.classic.Logger logger = lc.getLogger("com.appconfig");
+      logger.setLevel(Level.valueOf(properties.get().getProperty("log.root.level")));
+      log.info("Configuring log level: " + logger.getLevel());
+    }
 
-			log.info("Setting config refresh rate to: " + lttl + " seconds.");
-			setRefreshRate(lttl);
-		}
+    super.setProperties(getLoadedProperties());
 
-		// bootstrap setting log level here
-		if (StringUtils.hasText(properties.get().getProperty("log.root.level"))) {
-			LoggerContext lc = (LoggerContext) LoggerFactory
-					.getILoggerFactory();
-			ch.qos.logback.classic.Logger logger = lc
-					.getLogger("com.appconfig");
-			logger.setLevel(Level.valueOf(properties.get().getProperty(
-					"log.root.level")));
-			log.info("Configuring log level: " + logger.getLevel());
-		}
+  }
 
-		super.setProperties(getLoadedProperties());
+  public boolean isSearchClasspath() {
+    return searchClasspath;
+  }
 
-	}
+  protected Properties loadHosts(String hostsFile) throws FileNotFoundException {
 
-	public boolean isSearchClasspath() {
-		return searchClasspath;
-	}
+    log.info("Fetching hosts file from path: " + hostsFile);
 
-	protected Properties loadHosts(String hostsFile)
-			throws FileNotFoundException {
+    Resource resource = new DefaultResourceLoader().getResource(hostsFile);
 
-		log.info("Fetching hosts file from path: " + hostsFile);
+    if (!resource.exists()) {
+      throw new FileNotFoundException("Properties file " + hostsFile + " couldn't be found");
+    }
 
-		Resource resource = new DefaultResourceLoader().getResource(hostsFile);
+    Properties hosts = new EncryptableProperties(encryptor);
+    try (InputStream stream = resource.getInputStream()) {
 
-		if (!resource.exists()) {
-			throw new FileNotFoundException("Properties file " + hostsFile
-					+ " couldn't be found");
-		}
+      hosts.load(stream);
 
-		Properties hosts = new EncryptableProperties(encryptor);
-		try (InputStream stream = resource.getInputStream()) {
+    } catch (IOException e) {
+      log.error("Can't load hosts file", e);
+    }
 
-			hosts.load(stream);
+    return hosts;
 
-		} catch (IOException e) {
-			log.error("Can't load hosts file", e);
-		}
+  }
 
-		return hosts;
+  protected EncryptableProperties loadProperties(String propertiesPath) throws Exception {
 
-	}
+    List<Properties> all = new ArrayList<>();
 
-	protected EncryptableProperties loadProperties(String propertiesPath)
-			throws Exception {
+    if (StringUtils.hasText(propertiesPath)) {
 
-		List<Properties> all = new ArrayList<>();
+      do {
 
-		if (StringUtils.hasText(propertiesPath)) {
+        all.add(fetchProperties(propertiesPath));
+        propertiesPath = stripDir(propertiesPath);
 
-			do {
+      } while (new File(propertiesPath).getParent() != null);
+    }
 
-				all.add(fetchProperties(propertiesPath));
-				propertiesPath = stripDir(propertiesPath);
+    // Finally, check classpath
+    if (searchClasspath) {
+      all.add(fetchProperties("classpath:/config/"));
+      all.add(fetchProperties("classpath:"));
+    }
 
-			} while (new File(propertiesPath).getParent() != null);
-		}
+    Collections.reverse(all); // sort from root to highest
 
-		// Finally, check classpath
-		if (searchClasspath) {
-			all.add(fetchProperties("classpath:/config/"));
-			all.add(fetchProperties("classpath:"));
-		}
+    EncryptableProperties ps = new EncryptableProperties(encryptor);
 
-		Collections.reverse(all); // sort from root to highest
+    for (Properties p : all) {
+      ps.putAll(p); // replace root properties with higher level
+      // properties
+    }
 
-		EncryptableProperties ps = new EncryptableProperties(encryptor);
+    return ps;
 
-		for (Properties p : all) {
-			ps.putAll(p); // replace root properties with higher level
-							// properties
-		}
+  }
 
-		return ps;
+  @Override
+  public void register(ConfigChangeListener listener) {
+    // TODO Auto-generated method stub
 
-	}
-	
-	@Override
-	public void register(ConfigChangeListener listener) {
-		// TODO Auto-generated method stub
-		
-	}
+  }
 
-	@Override
-	public void register(String key, ConfigChangeListener listener) {
+  @Override
+  public void register(String key, ConfigChangeListener listener) {
 
-		if (listeners.contains(key)) {
-			listeners.get(key).add(listener);
-		} else {
-			synchronized (listeners) {
-				Set<ConfigChangeListener> n = new ConcurrentSkipListSet<ConfigChangeListener>();
-				n.add(listener);
-				listeners.put(key, n);
-			}
+    if (listeners.contains(key)) {
+      listeners.get(key).add(listener);
+    } else {
+      synchronized (listeners) {
+        Set<ConfigChangeListener> n = new ConcurrentSkipListSet<ConfigChangeListener>();
+        n.add(listener);
+        listeners.put(key, n);
+      }
 
-		}
+    }
 
-	}
+  }
 
-	@Override
-	public void setEnvironment(Environment environment) {
-		this.springProfiles = environment;
-	}
+  @Override
+  public void setEnvironment(Environment environment) {
+    this.springProfiles = environment;
+  }
 
-	public void setFileName(String fileName) {
-		this.fileName = fileName;
-	}
+  public void setFileName(String fileName) {
+    this.fileName = fileName;
+  }
 
-	public void setHostsFile(String hostsFile) {
-		this.hostsFile = hostsFile;
-	}
+  public void setHostsFile(String hostsFile) {
+    this.hostsFile = hostsFile;
+  }
 
-	public void setPassword(String password) {
-		this.password = password;
-	}
+  public void setPassword(String password) {
+    this.password = password;
+  }
 
-	public void setRefreshRate(Integer refresh) {
+  public void setRefreshRate(Integer refresh) {
 
-		if (refresh == 0L || refresh == null) {
-			timer.cancel();
-			return;
-		}
+    if (refresh == 0L || refresh == null) {
+      timer.cancel();
+      return;
+    }
 
-		synchronized (timer) {
-			timer.cancel();
-			timer = new Timer(true);
-			timer.schedule(new ReloadTask(), refresh * 1000, refresh * 1000);
-		}
-	}
+    synchronized (timer) {
+      timer.cancel();
+      timer = new Timer(true);
+      timer.schedule(new ReloadTask(), refresh * 1000, refresh * 1000);
+    }
+  }
 
-	public void setSearchClasspath(boolean searchClasspath) {
-		this.searchClasspath = searchClasspath;
-	}
+  public void setSearchClasspath(boolean searchClasspath) {
+    this.searchClasspath = searchClasspath;
+  }
 
-	private String stripDir(String path) {
+  private String stripDir(String path) {
 
-		int i = path.lastIndexOf("/");
+    int i = path.lastIndexOf("/");
 
-		if (i > 0)
-			return path.substring(0, i);
+    if (i > 0)
+      return path.substring(0, i);
 
-		return "";
+    return "";
 
-	}
+  }
 }

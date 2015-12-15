@@ -14,28 +14,26 @@ import org.testng.annotations.Test;
 @DirtiesContext
 @ActiveProfiles("QA")
 @ContextConfiguration("classpath:META-INF/spring/test-spring-configurer.xml")
-public class TestSpringProfileBasedConfig extends
-		AbstractTestNGSpringContextTests {
+public class TestSpringProfileBasedConfig extends AbstractTestNGSpringContextTests {
 
-	@Autowired
-	public SampleClass clazz;
+  @Autowired
+  public SampleClass clazz;
 
-	@Test
-	public void testProperties() throws Exception {
+  @Test
+  public void testProperties() throws Exception {
 
-		assertNotNull(clazz.getSomeValue1());
-		assertNotNull(clazz.getSomeValue2());
-		assertNotNull(clazz.getSomeValue4());
-		assertNotNull(clazz.getSomeOtherValue());
+    assertNotNull(clazz.getSomeValue1());
+    assertNotNull(clazz.getSomeValue2());
+    assertNotNull(clazz.getSomeValue4());
+    assertNotNull(clazz.getSomeOtherValue());
 
-		assertEquals(clazz.getSomeValue1(), "custom");
-		assertEquals(clazz.getSomeValue2(), "value2");
-		assertEquals(clazz.getSomeValue4(), "custom-custom2");
-		assertEquals(clazz.getSomeOtherValue(), "custom2");
+    assertEquals(clazz.getSomeValue1(), "custom");
+    assertEquals(clazz.getSomeValue2(), "value2");
+    assertEquals(clazz.getSomeValue4(), "custom-custom2");
+    assertEquals(clazz.getSomeOtherValue(), "custom2");
 
-		assertNotNull(clazz.getPropertyValue("property.1.name", String.class));
-		assertEquals(clazz.getPropertyValue("property.1.name", String.class),
-				"custom");
-	}
+    assertNotNull(clazz.getPropertyValue("property.1.name", String.class));
+    assertEquals(clazz.getPropertyValue("property.1.name", String.class), "custom");
+  }
 
 }
