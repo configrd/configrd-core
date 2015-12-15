@@ -50,7 +50,6 @@ public class ValueInjector implements ConfigChangeListener {
         if (f.isAnnotationPresent(Value.class)
             && f.getAnnotation(Value.class).value().equalsIgnoreCase(key)
             && f.getParameterCount() == 1) {
-
           try {
             f.invoke(o, value);
           } catch (Exception e) {
