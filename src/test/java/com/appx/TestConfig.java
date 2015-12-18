@@ -1,10 +1,7 @@
 package com.appx;
 
-import java.net.InetAddress;
 import java.util.Properties;
 
-import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -13,12 +10,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import com.appx.HierarchicalPropertyPlaceholderConfigurer;
-
 public class TestConfig {
 
-  @Mock
-  private InetAddress inet;
   private String host = "http://static.ca.pixtulate.com";
   private HierarchicalPropertyPlaceholderConfigurer config;
 
@@ -37,11 +30,9 @@ public class TestConfig {
 
     MockitoAnnotations.initMocks(this);
 
-    Mockito.doReturn("michelangello").when(inet).getHostName();
-
     config = new HierarchicalPropertyPlaceholderConfigurer("classpath:/env/hosts.properties");
     config.setPassword("secret");
-    config.inet = inet;
+    config.setHostName("michelangello");
     config.init();
   }
 
@@ -50,21 +41,13 @@ public class TestConfig {
 
     String hostName = config.detectHostName();
     Assert.assertNotNull(hostName);
-    Assert.assertEquals(hostName, "michelangello");
 
-    Mockito.doReturn("michelangello.my.domain.com").when(inet).getHostName();
-
-    Assert.assertEquals(inet.getHostName(), "michelangello.my.domain.com");
-
-    hostName = config.detectHostName();
-    Assert.assertNotNull(hostName);
-    Assert.assertEquals(hostName, "michelangello");
   }
 
   @Test
   public void testLoadHosts() throws Exception {
 
-    Properties p = config.loadHosts(config.hostsFile);
+    Properties p = config.loadHosts(config.getHostsFile());
     Assert.assertNotNull(p);
     Assert.assertTrue(p.containsKey("michelangello"));
     Assert.assertEquals(p.getProperty("michelangello"), "classpath:/env/dev/");
@@ -121,7 +104,7 @@ public class TestConfig {
   @Test
   public void testPropertiesCascade() throws Exception {
 
-    Mockito.doReturn("michelangello-custom").when(inet).getHostName();
+    config.setHostName("michelangello-custom");
     config.init();
 
     String value = config.getProperty("property.1.name", String.class);
@@ -137,7 +120,7 @@ public class TestConfig {
   @Test
   public void testPropertiesCascadeOverride() throws Exception {
 
-    Mockito.doReturn("michelangello-custom").when(inet).getHostName();
+    config.setHostName("michelangello-custom");
     config.init();
 
     String value = config.getProperty("property.1.name", String.class);
@@ -149,7 +132,7 @@ public class TestConfig {
   @Test
   public void testIncludeClasspathProperty() throws Exception {
 
-    Mockito.doReturn("michelangello-custom").when(inet).getHostName();
+    config.setHostName("michelangello-custom");
     config.setSearchClasspath(true);
     config.init();
 
@@ -162,7 +145,7 @@ public class TestConfig {
   @Test
   public void testDoNotIncludeClasspathProperty() throws Exception {
 
-    Mockito.doReturn("michelangello-custom").when(inet).getHostName();
+    config.setHostName("michelangello-custom");
     config.setSearchClasspath(false);
     config.init();
 
@@ -174,7 +157,7 @@ public class TestConfig {
   @Test
   public void testGetNonExistingProperty() throws Exception {
 
-    Mockito.doReturn("michelangello-custom").when(inet).getHostName();
+    config.setHostName("michelangello-custom");
     config.init();
 
     String value = config.getProperty("property.not-exists", String.class);
@@ -184,7 +167,7 @@ public class TestConfig {
 
   @Test
   public void testGetEncryptedProperty() throws Exception {
-    Mockito.doReturn("michelangello-custom").when(inet).getHostName();
+    config.setHostName("michelangello-custom");
     config.init();
 
     String value = config.getProperty("property.6.name", String.class);
@@ -195,7 +178,7 @@ public class TestConfig {
 
   @AfterMethod
   public void tearDown() {
-    Mockito.reset(inet);
+
     System.setProperty("hostname", "");
   }
 

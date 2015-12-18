@@ -31,6 +31,7 @@ import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -64,26 +65,32 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 
   private final static Logger log = LoggerFactory
       .getLogger(HierarchicalPropertyPlaceholderConfigurer.class);
+
+  @Autowired(required = false)
+  protected Environment springProfiles;
+
   private final ConvertUtilsBean bean = new ConvertUtilsBean();
 
-  protected BasicTextEncryptor encryptor = new BasicTextEncryptor();
-  private String fileName = "default.properties";
+  protected final BasicTextEncryptor encryptor = new BasicTextEncryptor();
+
+  private String environmentName;
+
+  private String hostName;
 
   @Value("${properties.hostsFilePath}")
-  protected String hostsFile;
-  protected InetAddress inet = InetAddress.getLocalHost();
+  private String hostsFilePath;
 
   private final ConcurrentHashMap<String, Set<ConfigChangeListener>> listeners =
       new ConcurrentHashMap<String, Set<ConfigChangeListener>>();
+
   protected String password = "secret";
 
   private final AtomicReference<EncryptableProperties> properties = new AtomicReference<>(
       new EncryptableProperties(encryptor));
 
-  private boolean searchClasspath = true;
+  private String propertiesFileName = "default.properties";
 
-  @Autowired(required = false)
-  protected Environment springProfiles;
+  private boolean searchClasspath = true;
 
   private Timer timer = new Timer(true);
 
@@ -100,7 +107,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
    * @throws Exception
    */
   public HierarchicalPropertyPlaceholderConfigurer(String path) throws Exception {
-    this.hostsFile = path;
+    this.hostsFilePath = path;
   }
 
   /**
@@ -111,31 +118,33 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
    * @throws Exception
    */
   public HierarchicalPropertyPlaceholderConfigurer(String path, int refresh) throws Exception {
-    this.hostsFile = path;
+    this.hostsFilePath = path;
     setRefreshRate(refresh);
   }
 
   /**
    * 
    * @param path The path of the hosts.properties file
+   * @param fileName Name of the property files to search for (i.e. default.properties)
    * @throws Exception
    */
   public HierarchicalPropertyPlaceholderConfigurer(String path, String fileName) throws Exception {
-    this.hostsFile = path;
-    this.fileName = fileName;
+    this.hostsFilePath = path;
+    this.propertiesFileName = fileName;
   }
 
   /**
    * 
    * @param path - The path of the hosts.properties file
+   * @param fileName Name of the property files to search for (i.e. default.properties)
    * @param refresh - The period in seconds at which the config properties should be refreshed.
    *        Defaults to 10 minutes.
    * @throws Exception
    */
   public HierarchicalPropertyPlaceholderConfigurer(String path, String fileName, int refresh)
       throws Exception {
-    this.hostsFile = path;
-    this.fileName = fileName;
+    this.hostsFilePath = path;
+    this.propertiesFileName = fileName;
     setRefreshRate(refresh);
   }
 
@@ -152,7 +161,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
    * 
    * @return environment string
    */
-  protected String detectEnvironment() {
+  public String detectEnvironment() {
 
     String env = null;
 
@@ -161,18 +170,15 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
       env = springProfiles.getActiveProfiles()[0];
     }
 
-    try {
+    env = StringUtils.hasText(env) ? env : System.getProperty("env");
+    env = StringUtils.hasText(env) ? env : System.getProperty("ENV");
+    env = StringUtils.hasText(env) ? env : System.getProperty("environment");
+    env = StringUtils.hasText(env) ? env : System.getProperty("ENVIRONMENT");
 
-      env = StringUtils.hasText(env) ? env : System.getProperty("env");
-
-      if (!StringUtils.hasText(env)) {
-        log.info("No environment variable detected under 'spring.profiles' or system property 'env'");
-      } else {
-        log.info("Detected environment: " + env);
-      }
-
-    } catch (Exception e) {
-      log.error("Error while detecting environment", e);
+    if (!StringUtils.hasText(env)) {
+      log.info("No environment variable detected under 'spring.profiles' or system properties 'env', 'ENV', 'environment', 'ENVIRONMENT'");
+    } else {
+      log.info("Detected environment: " + env);
     }
 
     return env;
@@ -185,7 +191,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
    * 
    * @return hostname
    */
-  protected String detectHostName() {
+  public String detectHostName() {
 
     String hostName = null;
 
@@ -193,11 +199,13 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 
       hostName =
           StringUtils.hasText(System.getProperty("hostname")) ? System.getProperty("hostname")
-              : inet.getHostName();
+              : InetAddress.getLocalHost().getHostName();
+
+      hostName = StringUtils.hasText(hostName) ? hostName : System.getProperty("HOSTNAME");
 
       if (!StringUtils.hasText(hostName)) {
         throw new UnknownHostException(
-            "Unable to resolve host in order to resolve hosts file config");
+            "Unable to resolve host in order to resolve hosts file config. Searched system property 'hostname', 'HOSTNAME' and localhost.hostName");
       }
 
       if (hostName.contains(".")) {
@@ -217,13 +225,13 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
   private Properties fetchProperties(String propertiesPath) {
 
     Properties p = new Properties();
+    ResourceLoader resourceLoader = new DefaultResourceLoader();
 
-    Resource resource = new DefaultResourceLoader().getResource(propertiesPath + "/" + fileName);
+    Resource resource = resourceLoader.getResource(propertiesPath + "/" + propertiesFileName);
 
     // Check if a spring properties file exists
     if (!resource.exists()) {
-      resource =
-          new DefaultResourceLoader().getResource(propertiesPath + "/application.properties");
+      resource = resourceLoader.getResource(propertiesPath + "/application.properties");
     }
 
     // Search for default.properties file in parent folders
@@ -253,11 +261,15 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
   }
 
   public String getFileName() {
-    return fileName;
+    return propertiesFileName;
+  }
+
+  public String getHostName() {
+    return hostName;
   }
 
   public String getHostsFile() {
-    return hostsFile;
+    return hostsFilePath;
   }
 
   protected EncryptableProperties getLoadedProperties() {
@@ -294,23 +306,26 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
   }
 
   @PostConstruct
-  protected void init() throws Exception {
-    
+  public void init() throws Exception {
+
+    if (StringUtils.isEmpty(environmentName))
+      environmentName = detectEnvironment();
+
+    if (StringUtils.isEmpty(hostName))
+      hostName = detectHostName();
+
     encryptor.setPassword(password);
 
     logger.info("Loading property files...");
 
-    Properties hosts = loadHosts(hostsFile);
-
-    String hostName = detectHostName();
-    String environment = detectEnvironment();
+    Properties hosts = loadHosts(hostsFilePath);
 
     String propertiesFile = hosts.getProperty(hostName);
 
     // Attempt environment as a backup
-    if (!StringUtils.hasText(propertiesFile) && StringUtils.hasText(environment)) {
+    if (!StringUtils.hasText(propertiesFile) && StringUtils.hasText(environmentName)) {
 
-      propertiesFile = hosts.getProperty(environment);
+      propertiesFile = hosts.getProperty(environmentName);
 
     } else if (!StringUtils.hasText(propertiesFile)) {
 
@@ -322,7 +337,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 
     if (ps.isEmpty()) {
       throw new FileNotFoundException("Counldn't find any properties for host " + hostName
-          + " or environment " + environment);
+          + " or environment " + environmentName);
     }
 
     properties.set(ps);
@@ -436,11 +451,15 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
   }
 
   public void setFileName(String fileName) {
-    this.fileName = fileName;
+    this.propertiesFileName = fileName;
+  }
+
+  public void setHostName(String hostName) {
+    this.hostName = hostName;
   }
 
   public void setHostsFile(String hostsFile) {
-    this.hostsFile = hostsFile;
+    this.hostsFilePath = hostsFile;
   }
 
   public void setPassword(String password) {
@@ -474,5 +493,13 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 
     return "";
 
+  }
+
+  public String getEnvironmentName() {
+    return environmentName;
+  }
+
+  public void setEnvironmentName(String environmentName) {
+    this.environmentName = environmentName;
   }
 }
