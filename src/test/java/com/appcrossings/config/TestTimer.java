@@ -1,4 +1,4 @@
-package com.appx;
+package com.appcrossings.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
@@ -9,7 +9,7 @@ import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 
-import com.appx.Config;
+import com.appcrossings.config.Config;
 
 @DirtiesContext
 @ActiveProfiles("QA")

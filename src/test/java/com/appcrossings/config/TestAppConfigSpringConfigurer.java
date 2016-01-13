@@ -1,23 +1,19 @@
-package com.appx;
+package com.appcrossings.config;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
 import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-@DirtiesContext
 @ContextConfiguration("classpath:META-INF/spring/test-spring-configurer.xml")
-public class TestEnvBasedConfig extends AbstractTestNGSpringContextTests {
+public class TestAppConfigSpringConfigurer extends AbstractTestNGSpringContextTests {
 
-  @BeforeClass
-  public void init() {
-    System.setProperty("env", "QA");
+  static {
+    System.setProperty("hostname", "michelangello-custom");
   }
 
   @Autowired
@@ -42,7 +38,7 @@ public class TestEnvBasedConfig extends AbstractTestNGSpringContextTests {
 
   @AfterClass
   public void tearDown() {
-    System.setProperty("env", "");
+    System.setProperty("hostname", "");
   }
 
 }

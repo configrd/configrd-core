@@ -2,14 +2,14 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>appconfig-client</artifactId>
-	<version>1.1.0</version>
+	<version>1.2.0</version>
 	<name>Hierarchical Application Config</name>
 	<description>A property placeholder configurer compatible with Spring and allowing hierarchical configurations to be externalized from the application and loaded by URL</description>
 	<url>https://bitbucket.org/appcrossings/appconfig</url>
 	<scm>
-		<url>https://bitbucket.org/appcrossings/appconfig</url>
-		<connection>scm:git:https://bitbucket.org/appcrossings/appconfig</connection>
-		<developerConnection>scm:git:https://bitbucket.org/appcrossings/appconfig</developerConnection>
+		<url>https://github.com/appcrossings/appconfig-client</url>
+		<connection>scm:git:https://github.com/appcrossings/appconfig-client</connection>
+		<developerConnection>scm:git:https://github.com/appcrossings/appconfig-client</developerConnection>
 	</scm>	
 	<dependencies>
 		<dependency>
@@ -27,7 +27,7 @@
 		</dependency>
 	</dependencies>
 	<parent>
-		<groupId>com.appx</groupId>
+		<groupId>com.appcrossings</groupId>
 		<artifactId>appconfig-pom</artifactId>
 		<version>1.0.0-SNAPSHOT</version>
 	</parent>

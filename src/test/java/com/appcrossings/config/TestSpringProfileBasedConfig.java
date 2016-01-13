@@ -1,20 +1,19 @@
-package com.appx;
+package com.appcrossings.config;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 
+@DirtiesContext
+@ActiveProfiles("QA")
 @ContextConfiguration("classpath:META-INF/spring/test-spring-configurer.xml")
-public class TestAppConfigSpringConfigurer extends AbstractTestNGSpringContextTests {
-
-  static {
-    System.setProperty("hostname", "michelangello-custom");
-  }
+public class TestSpringProfileBasedConfig extends AbstractTestNGSpringContextTests {
 
   @Autowired
   public SampleClass clazz;
@@ -34,11 +33,6 @@ public class TestAppConfigSpringConfigurer extends AbstractTestNGSpringContextTe
 
     assertNotNull(clazz.getPropertyValue("property.1.name", String.class));
     assertEquals(clazz.getPropertyValue("property.1.name", String.class), "custom");
-  }
-
-  @AfterClass
-  public void tearDown() {
-    System.setProperty("hostname", "");
   }
 
 }

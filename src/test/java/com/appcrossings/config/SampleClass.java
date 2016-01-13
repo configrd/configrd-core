@@ -1,9 +1,9 @@
-package com.appx;
+package com.appcrossings.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.appx.Config;
+import com.appcrossings.config.Config;
 
 public class SampleClass {
 

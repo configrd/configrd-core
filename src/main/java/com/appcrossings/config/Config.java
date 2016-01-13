@@ -1,4 +1,4 @@
-package com.appx;
+package com.appcrossings.config;
 
 /**
  * Interface for configuration implementations.
