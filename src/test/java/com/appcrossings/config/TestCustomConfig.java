@@ -2,48 +2,30 @@ package com.appcrossings.config;
 
 import java.util.Properties;
 
-import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import com.appcrossings.config.HierarchicalPropertyPlaceholderConfigurer;
+import com.appcrossings.config.TestCustomConfig.SampleApplicationContext;
 
-public class TestConfig {
+@DirtiesContext
+@ContextConfiguration(classes = SampleApplicationContext.class)
+public class TestCustomConfig extends AbstractTestNGSpringContextTests {
 
   private String host = "http://static.ca.pixtulate.com";
+
+  @Autowired
   private HierarchicalPropertyPlaceholderConfigurer config;
-
-  @BeforeClass
-  public void env() {
-    System.setProperty("env", "QA");
-  }
-
-  @AfterClass
-  public void destroyEnv() {
-    System.setProperty("env", "");
-  }
-
-  @BeforeMethod
-  public void setUp() throws Exception {
-
-    MockitoAnnotations.initMocks(this);
-
-    config = new HierarchicalPropertyPlaceholderConfigurer("classpath:/env/hosts.properties");
-    config.setPassword("secret");
-    config.setHostName("michelangello");
-    config.init();
-  }
 
   @Test
   public void testDetectHost() {
-
     String hostName = config.detectHostName();
     Assert.assertNotNull(hostName);
-
   }
 
   @Test
@@ -63,6 +45,8 @@ public class TestConfig {
     String hostName = config.detectHostName();
     Assert.assertNotNull(hostName);
     Assert.assertEquals(hostName, "testhost");
+
+    System.setProperty("hostname", "michelangello-custom");
   }
 
   @Test
@@ -72,15 +56,6 @@ public class TestConfig {
     Assert.assertNotNull(p);
     Assert.assertTrue(p.containsKey("property.1.name"));
     Assert.assertEquals(p.getProperty("property.1.name"), "value1");
-
-  }
-
-  @Test
-  public void testLoadHostFile() {
-
-    String value = config.getProperty("property.1.name", String.class);
-    Assert.assertNotNull(value);
-    Assert.assertEquals(value, "value1");
 
   }
 
@@ -106,9 +81,6 @@ public class TestConfig {
   @Test
   public void testPropertiesCascade() throws Exception {
 
-    config.setHostName("michelangello-custom");
-    config.init();
-
     String value = config.getProperty("property.1.name", String.class);
     Assert.assertNotNull(value);
     Assert.assertEquals(value, "custom");
@@ -122,9 +94,6 @@ public class TestConfig {
   @Test
   public void testPropertiesCascadeOverride() throws Exception {
 
-    config.setHostName("michelangello-custom");
-    config.init();
-
     String value = config.getProperty("property.1.name", String.class);
     Assert.assertNotNull(value);
     Assert.assertEquals(value, "custom");
@@ -134,10 +103,6 @@ public class TestConfig {
   @Test
   public void testIncludeClasspathProperty() throws Exception {
 
-    config.setHostName("michelangello-custom");
-    config.setSearchClasspath(true);
-    config.init();
-
     String value = config.getProperty("property.5.name", String.class);
     Assert.assertNotNull(value);
     Assert.assertEquals(value, "classpath");
@@ -145,22 +110,7 @@ public class TestConfig {
   }
 
   @Test
-  public void testDoNotIncludeClasspathProperty() throws Exception {
-
-    config.setHostName("michelangello-custom");
-    config.setSearchClasspath(false);
-    config.init();
-
-    String value = config.getProperty("property.5.name", String.class);
-    Assert.assertNull(value);
-
-  }
-
-  @Test
   public void testGetNonExistingProperty() throws Exception {
-
-    config.setHostName("michelangello-custom");
-    config.init();
 
     String value = config.getProperty("property.not-exists", String.class);
     Assert.assertNull(value);
@@ -169,8 +119,6 @@ public class TestConfig {
 
   @Test
   public void testGetEncryptedProperty() throws Exception {
-    config.setHostName("michelangello-custom");
-    config.init();
 
     String value = config.getProperty("property.6.name", String.class);
     Assert.assertNotNull(value);
@@ -178,10 +126,23 @@ public class TestConfig {
     Assert.assertEquals(value, "password");
   }
 
-  @AfterMethod
-  public void tearDown() {
+  @Configuration
+  public static class SampleApplicationContext {
 
-    System.setProperty("hostname", "");
+    static {
+      System.setProperty("env", "QA");
+      System.setProperty("hostname", "michelangello-custom");
+    }
+
+    @Bean
+    public static HierarchicalPropertyPlaceholderConfigurer createConfig() throws Exception {
+      HierarchicalPropertyPlaceholderConfigurer c =
+          new HierarchicalPropertyPlaceholderConfigurer("classpath:/env/hosts.properties");
+      c.setPassword("secret");
+      return c;
+    }
+
   }
+
 
 }

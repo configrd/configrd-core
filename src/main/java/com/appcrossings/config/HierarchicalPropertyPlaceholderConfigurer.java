@@ -1,7 +1,6 @@
 package com.appcrossings.config;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -17,17 +16,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.PostConstruct;
-
 import org.apache.commons.beanutils.ConvertUtilsBean;
+import org.jasypt.exceptions.AlreadyInitializedException;
 import org.jasypt.properties.EncryptableProperties;
 import org.jasypt.util.text.BasicTextEncryptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.EnvironmentAware;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
@@ -35,20 +35,15 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.LoggerContext;
-
 import com.google.common.base.Throwables;
 
 /**
- * 
- * 
  * 
  * @author Krzysztof Karski
  *
  */
 @Service
-public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlaceholderConfigurer
+public class HierarchicalPropertyPlaceholderConfigurer extends PropertySourcesPlaceholderConfigurer
     implements Config, EnvironmentAware {
 
   private class ReloadTask extends TimerTask {
@@ -56,7 +51,10 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
     @Override
     public void run() {
       try {
-        init();
+
+        if (beanFactory != null)
+          postProcessBeanFactory(beanFactory);
+
       } catch (Exception e) {
         logger.error("Error refreshing configs", e);
       }
@@ -85,7 +83,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 
   protected String password = "secret";
 
-  private final AtomicReference<EncryptableProperties> properties = new AtomicReference<>(
+  private final AtomicReference<EncryptableProperties> loadedProperties = new AtomicReference<>(
       new EncryptableProperties(encryptor));
 
   private String propertiesFileName = "default.properties";
@@ -94,12 +92,26 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 
   private Timer timer = new Timer(true);
 
+  private ConfigurableListableBeanFactory beanFactory;
+
+  @Override
+  public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory)
+      throws BeansException {
+
+    this.beanFactory = beanFactory;
+    init();
+    super.postProcessBeanFactory(beanFactory);
+
+  }
+
   /**
    * Set path to hosts.properties file using the setter.
    * 
    * @throws Exception
    */
-  public HierarchicalPropertyPlaceholderConfigurer() throws Exception {}
+  public HierarchicalPropertyPlaceholderConfigurer() throws Exception {
+    setLocalOverride(true);
+  }
 
   /**
    * 
@@ -107,6 +119,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
    * @throws Exception
    */
   public HierarchicalPropertyPlaceholderConfigurer(String path) throws Exception {
+    setLocalOverride(true);
     this.hostsFilePath = path;
   }
 
@@ -119,6 +132,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
    */
   public HierarchicalPropertyPlaceholderConfigurer(String path, int refresh) throws Exception {
     this.hostsFilePath = path;
+    setLocalOverride(true);
     setRefreshRate(refresh);
   }
 
@@ -130,6 +144,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
    */
   public HierarchicalPropertyPlaceholderConfigurer(String path, String fileName) throws Exception {
     this.hostsFilePath = path;
+    setLocalOverride(true);
     this.propertiesFileName = fileName;
   }
 
@@ -146,6 +161,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
     this.hostsFilePath = path;
     this.propertiesFileName = fileName;
     setRefreshRate(refresh);
+    setLocalOverride(true);
   }
 
   @Override
@@ -273,7 +289,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
   }
 
   protected EncryptableProperties getLoadedProperties() {
-    return properties.get();
+    return loadedProperties.get();
   }
 
   public String getPassword() {
@@ -283,7 +299,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
   @Override
   public <T> T getProperty(String key, Class<T> clazz) {
 
-    String property = properties.get().getProperty(key);
+    String property = loadedProperties.get().getProperty(key);
 
     if (clazz.equals(String.class))
       return (T) property;
@@ -305,8 +321,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 
   }
 
-  @PostConstruct
-  public void init() throws Exception {
+  private void init() {
 
     if (StringUtils.isEmpty(environmentName))
       environmentName = detectEnvironment();
@@ -314,7 +329,11 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
     if (StringUtils.isEmpty(hostName))
       hostName = detectHostName();
 
-    encryptor.setPassword(password);
+    try {
+      encryptor.setPassword(password);
+    } catch (AlreadyInitializedException e) {
+      // skip
+    }
 
     logger.info("Loading property files...");
 
@@ -336,14 +355,22 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
     EncryptableProperties ps = loadProperties(propertiesFile);
 
     if (ps.isEmpty()) {
-      throw new FileNotFoundException("Counldn't find any properties for host " + hostName
-          + " or environment " + environmentName);
+      log.warn("Counldn't find any properties for host " + hostName + " or environment "
+          + environmentName);
+    }    
+
+    // Finally, propagate properties to PropertyPlaceholderConfigurer
+    loadedProperties.set(ps); 
+    super.setProperties(getLoadedProperties());
+
+    try {
+      mergeProperties();
+    } catch (IOException io) {
+      // nothing
     }
-
-    properties.set(ps);
-
-    String ttl = (String) properties.get().get("config.ttl");
-    if (ttl != null) {
+    
+    String ttl = (String) ps.get("config.ttl");
+    if (!StringUtils.isEmpty(ttl)) {
 
       Integer lttl = Integer.valueOf(ttl);
 
@@ -351,30 +378,21 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
       setRefreshRate(lttl);
     }
 
-    // bootstrap setting log level here
-    if (StringUtils.hasText(properties.get().getProperty("log.root.level"))) {
-      LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-      ch.qos.logback.classic.Logger logger = lc.getLogger("com.appconfig");
-      logger.setLevel(Level.valueOf(properties.get().getProperty("log.root.level")));
-      log.info("Configuring log level: " + logger.getLevel());
-    }
-
-    super.setProperties(getLoadedProperties());
-
   }
 
   public boolean isSearchClasspath() {
     return searchClasspath;
   }
 
-  protected Properties loadHosts(String hostsFile) throws FileNotFoundException {
+  protected Properties loadHosts(String hostsFile) throws IllegalArgumentException {
 
     log.info("Fetching hosts file from path: " + hostsFile);
 
     Resource resource = new DefaultResourceLoader().getResource(hostsFile);
 
     if (!resource.exists()) {
-      throw new FileNotFoundException("Properties file " + hostsFile + " couldn't be found");
+      throw new IllegalArgumentException("Properties file " + hostsFile
+          + " couldn't be found at location " + hostsFile);
     }
 
     Properties hosts = new EncryptableProperties(encryptor);
@@ -390,7 +408,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 
   }
 
-  protected EncryptableProperties loadProperties(String propertiesPath) throws Exception {
+  protected EncryptableProperties loadProperties(String propertiesPath) {
 
     List<Properties> all = new ArrayList<>();
 
@@ -415,8 +433,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
     EncryptableProperties ps = new EncryptableProperties(encryptor);
 
     for (Properties p : all) {
-      ps.putAll(p); // replace root properties with higher level
-      // properties
+      ps.putAll(p); // merge down and replace lower properties with override properties
     }
 
     return ps;
@@ -447,6 +464,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertyPlacehold
 
   @Override
   public void setEnvironment(Environment environment) {
+    super.setEnvironment(environment);
     this.springProfiles = environment;
   }
 

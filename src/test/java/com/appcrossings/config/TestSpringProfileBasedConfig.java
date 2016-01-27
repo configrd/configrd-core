@@ -1,8 +1,5 @@
 package com.appcrossings.config;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
@@ -10,11 +7,22 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
 import org.testng.annotations.Test;
 
+import static org.testng.Assert.*;
+
+
 @DirtiesContext
 @ActiveProfiles("QA")
 @ContextConfiguration("classpath:META-INF/spring/test-spring-configurer.xml")
 public class TestSpringProfileBasedConfig extends AbstractTestNGSpringContextTests {
 
+  static {
+    System.setProperty("env", "");
+    System.setProperty("hostname", "");
+  }
+  
+  @Autowired
+  private Config config;
+  
   @Autowired
   public SampleClass clazz;
 
@@ -31,8 +39,8 @@ public class TestSpringProfileBasedConfig extends AbstractTestNGSpringContextTes
     assertEquals(clazz.getSomeValue4(), "custom-custom2");
     assertEquals(clazz.getSomeOtherValue(), "custom2");
 
-    assertNotNull(clazz.getPropertyValue("property.1.name", String.class));
-    assertEquals(clazz.getPropertyValue("property.1.name", String.class), "custom");
+    assertNotNull(config.getProperty("property.1.name", String.class));
+    assertEquals(config.getProperty("property.1.name", String.class), "custom");
   }
 
 }

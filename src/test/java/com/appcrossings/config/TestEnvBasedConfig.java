@@ -1,24 +1,25 @@
 package com.appcrossings.config;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import static org.testng.Assert.*;
+
 
 @DirtiesContext
 @ContextConfiguration("classpath:META-INF/spring/test-spring-configurer.xml")
 public class TestEnvBasedConfig extends AbstractTestNGSpringContextTests {
 
-  @BeforeClass
-  public void init() {
+  static {
     System.setProperty("env", "QA");
+    System.setProperty("hostname", "");
   }
+  
+  @Autowired
+  private Config config;
 
   @Autowired
   public SampleClass clazz;
@@ -36,13 +37,8 @@ public class TestEnvBasedConfig extends AbstractTestNGSpringContextTests {
     assertEquals(clazz.getSomeValue4(), "custom-custom2");
     assertEquals(clazz.getSomeOtherValue(), "custom2");
 
-    assertNotNull(clazz.getPropertyValue("property.1.name", String.class));
-    assertEquals(clazz.getPropertyValue("property.1.name", String.class), "custom");
-  }
-
-  @AfterClass
-  public void tearDown() {
-    System.setProperty("env", "");
+    assertNotNull(config.getProperty("property.1.name", String.class));
+    assertEquals(config.getProperty("property.1.name", String.class), "custom");
   }
 
 }

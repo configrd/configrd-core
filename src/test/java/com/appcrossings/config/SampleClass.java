@@ -1,9 +1,6 @@
 package com.appcrossings.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-
-import com.appcrossings.config.Config;
 
 public class SampleClass {
 
@@ -16,19 +13,27 @@ public class SampleClass {
   @Value("${property.4.name}")
   public String someValue4;
 
+
+  public String bonus1;
+
   public String someOtherValue;
 
   public String getSomeValue4() {
     return someValue4;
   }
 
+  public String getBonus1() {
+    return bonus1;
+  }
+
+  @Value("${bonus.1.property:none}")
+  public void setBonus1(String bonus1) {
+    this.bonus1 = bonus1;
+  }
 
   public void setSomeValue4(String someValue4) {
     this.someValue4 = someValue4;
   }
-
-  @Autowired
-  public Config config;
 
   public String getSomeOtherValue() {
     return someOtherValue;
@@ -57,10 +62,6 @@ public class SampleClass {
 
   public void setSomeOtherValue(String someOtherValue) {
     this.someOtherValue = someOtherValue;
-  }
-
-  public <T> T getPropertyValue(String key, Class<T> clazz) {
-    return config.getProperty(key, clazz);
   }
 
 
