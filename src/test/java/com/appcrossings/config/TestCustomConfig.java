@@ -1,7 +1,5 @@
 package com.appcrossings.config;
 
-import java.util.Properties;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,7 +15,6 @@ import com.appcrossings.config.TestCustomConfig.SampleApplicationContext;
 @ContextConfiguration(classes = SampleApplicationContext.class)
 public class TestCustomConfig extends AbstractTestNGSpringContextTests {
 
-  private String host = "http://static.ca.pixtulate.com";
 
   @Autowired
   private HierarchicalPropertyPlaceholderConfigurer config;
@@ -29,16 +26,6 @@ public class TestCustomConfig extends AbstractTestNGSpringContextTests {
   }
 
   @Test
-  public void testLoadHosts() throws Exception {
-
-    Properties p = config.loadHosts(config.hostsFilePath);
-    Assert.assertNotNull(p);
-    Assert.assertTrue(p.containsKey("michelangello"));
-    Assert.assertEquals(p.getProperty("michelangello"), "classpath:/env/dev/");
-
-  }
-
-  @Test
   public void overrideHostName() throws Exception {
     System.setProperty("hostname", "testhost");
 
@@ -47,35 +34,6 @@ public class TestCustomConfig extends AbstractTestNGSpringContextTests {
     Assert.assertEquals(hostName, "testhost");
 
     System.setProperty("hostname", "michelangello-custom");
-  }
-
-  @Test
-  public void loadProperties() throws Exception {
-
-    Properties p = config.loadProperties("classpath:/env/dev/");
-    Assert.assertNotNull(p);
-    Assert.assertTrue(p.containsKey("property.1.name"));
-    Assert.assertEquals(p.getProperty("property.1.name"), "value1");
-
-  }
-
-  @Test
-  public void testPullHostFileFromAmazon() throws Exception {
-
-    Properties p = config.loadHosts(host + "/env/hosts.properties");
-    Assert.assertNotNull(p);
-    Assert.assertTrue(p.containsKey("kkarski-ibm"));
-
-  }
-
-  @Test
-  public void testPullPropertiesFileFromAmazon() throws Exception {
-
-    Properties p = config.loadProperties(host + "/env/dev");
-
-    Assert.assertNotNull(p);
-    Assert.assertTrue(p.containsKey("algo.im.path"));
-
   }
 
   @Test
