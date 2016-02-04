@@ -1,58 +1,77 @@
 package com.appcrossings.config;
 
-import javax.annotation.PostConstruct;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Properties;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
+import org.springframework.util.PropertyPlaceholderHelper;
+import org.springframework.util.StringUtils;
 
-public class ValueInjector implements ConfigChangeListener {
+public class ValueInjector {
 
-  @Autowired
-  private ApplicationContext context;
-
-  @Autowired
-  private Config config;
-
-  @PostConstruct
-  private void register() {
-
+  public ValueInjector(ApplicationContext context) {
+    this.context = context;
   }
 
-  @Override
-  public void propertyChanged(String key, Object value) {
+  private final ApplicationContext context;
 
-//    Map<String, Object> beans = context.getBeansWithAnnotation(Value.class);
-//
-//    for (Object o : beans.values()) {
-//
-//      Field[] values = o.getClass().getFields();
-//
-//      for (Field f : values) {
-//        if (f.isAnnotationPresent(Value.class)
-//            && f.getAnnotation(Value.class).value().equalsIgnoreCase(key)) {
-//          try {
-//            f.set(o, value);
-//          } catch (Exception e) {
-//            // nothing
-//          }
-//
-//        }
-//      }
-//
-//      Method[] methods = o.getClass().getMethods();
-//
-//      for (Method f : methods) {
-//        if (f.isAnnotationPresent(Value.class)
-//            && f.getAnnotation(Value.class).value().equalsIgnoreCase(key)
-//            && f.getParameterCount() == 1) {
-//          try {
-//            f.invoke(o, value);
-//          } catch (Exception e) {
-//
-//          }
-//        }
-//      }
-//    }
+  public void reloadBeans(Properties props, String prefix, String suffix) {
+
+    String[] beanNames = context.getBeanDefinitionNames();
+
+    PropertyPlaceholderHelper helper = new PropertyPlaceholderHelper(prefix, suffix, ":", false);
+
+    for (String name : beanNames) {
+
+      Object o = context.getBean(name);
+
+      if (o.getClass().equals(getClass()))
+        continue;
+
+      Field[] values = o.getClass().getFields();
+
+      for (Field f : values) {
+
+        if (!f.isAnnotationPresent(Value.class)) {
+          continue;
+        } else {
+
+          String key = f.getAnnotation(Value.class).value();
+          String value = helper.replacePlaceholders(key, props);
+
+          try {
+
+            if (!StringUtils.isEmpty(value) && !value.equals(f.get(o))) {
+              f.set(o, value);
+            }
+          } catch (Exception e) {
+            // nothing
+          }
+        }
+      }
+
+      Method[] methods = o.getClass().getMethods();
+
+      for (Method f : methods) {
+
+        if (!f.isAnnotationPresent(Value.class)) {
+          continue;
+        } else if (f.getName().startsWith("set") && f.getParameterCount() == 1) {
+
+          String key = f.getAnnotation(Value.class).value();
+          String value = helper.replacePlaceholders(key, props);
+
+          if (!StringUtils.isEmpty(value)) {
+            try {
+              f.invoke(o, value);
+            } catch (Exception e) {
+
+            }
+          }
+        }
+      }
+    }
   }
-
 }

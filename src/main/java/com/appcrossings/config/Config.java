@@ -32,7 +32,7 @@ public interface Config {
    * @param listener - the listener instance which will be triggered in the event of the property
    *        changing
    */
-  public void register(ConfigChangeListener listener);
+//  public void register(ConfigChangeListener listener);
 
   /**
    * Register a property change listener which will be triggered with any updated property values
@@ -42,7 +42,7 @@ public interface Config {
    * @param listener - the listener instance which will be triggered in the event of the property
    *        changing
    */
-  public void register(String key, ConfigChangeListener listener);
+//  public void register(String key, ConfigChangeListener listener);
 
   /**
    * Stop listening to property change updated
@@ -51,6 +51,6 @@ public interface Config {
    * @param listener - the listener instance which will be triggered in the event of the property
    *        changing
    */
-  public void deregister(String key, ConfigChangeListener listener);
+//  public void deregister(String key, ConfigChangeListener listener);
 
 }

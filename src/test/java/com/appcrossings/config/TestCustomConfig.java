@@ -24,14 +24,14 @@ public class TestCustomConfig extends AbstractTestNGSpringContextTests {
 
   @Test
   public void testDetectHost() {
-    String hostName = config.detectHostName();
+    String hostName = config.envUtil.detectHostName();
     Assert.assertNotNull(hostName);
   }
 
   @Test
   public void testLoadHosts() throws Exception {
 
-    Properties p = config.loadHosts(config.getHostsFile());
+    Properties p = config.loadHosts(config.hostsFilePath);
     Assert.assertNotNull(p);
     Assert.assertTrue(p.containsKey("michelangello"));
     Assert.assertEquals(p.getProperty("michelangello"), "classpath:/env/dev/");
@@ -42,7 +42,7 @@ public class TestCustomConfig extends AbstractTestNGSpringContextTests {
   public void overrideHostName() throws Exception {
     System.setProperty("hostname", "testhost");
 
-    String hostName = config.detectHostName();
+    String hostName = config.envUtil.detectHostName();
     Assert.assertNotNull(hostName);
     Assert.assertEquals(hostName, "testhost");
 
