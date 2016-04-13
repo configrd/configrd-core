@@ -7,8 +7,8 @@ import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.beanutils.ConvertUtilsBean;
-import org.jasypt.properties.EncryptableProperties;
-import org.jasypt.util.text.BasicTextEncryptor;
+import org.jasypt.encryption.pbe.StandardPBEStringEncryptor;
+import org.jasypt.encryption.pbe.config.EnvironmentStringPBEConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -42,8 +42,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertySourcesPl
       }
     }
   }
-  
-  public final static String DEFAULT_PASSWORD = "secret";
+
   public final static String DEFAULT_PROPERTIES_FILE_NAME = "default.properties";
   private final static Logger log = LoggerFactory
       .getLogger(HierarchicalPropertyPlaceholderConfigurer.class);
@@ -52,7 +51,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertySourcesPl
 
   private final ConvertUtilsBean bean = new ConvertUtilsBean();
 
-  private BasicTextEncryptor encryptor;
+  private StandardPBEStringEncryptor encryptor = null;
 
   protected EnvironmentUtil envUtil = new EnvironmentUtil();
 
@@ -62,7 +61,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertySourcesPl
 
   private ValueInjector injector;
 
-  private final AtomicReference<EncryptableProperties> loadedProperties = new AtomicReference<>();
+  private final AtomicReference<Properties> loadedProperties = new AtomicReference<>();
 
   protected String propertiesFileName = DEFAULT_PROPERTIES_FILE_NAME;
 
@@ -81,7 +80,6 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertySourcesPl
         new PropertyPlaceholderHelper(this.placeholderPrefix, this.placeholderSuffix,
             this.valueSeparator, this.ignoreUnresolvablePlaceholders);
     this.hostsFilePath = path;
-    setPassword(DEFAULT_PASSWORD);
   }
 
   /**
@@ -156,8 +154,11 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertySourcesPl
 
     }
 
-    EncryptableProperties ps =
-        ResourcesUtil.loadProperties(propertiesFile, propertiesFileName, searchClasspath, encryptor);
+    log.debug("Found properties starting at path: " + propertiesFile);
+    
+    Properties ps =
+        ResourcesUtil
+            .loadProperties(propertiesFile, propertiesFileName, searchClasspath, encryptor);
 
     if (ps.isEmpty()) {
       log.warn("Counldn't find any properties for host " + hostName + " or environment "
@@ -214,10 +215,32 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertySourcesPl
     envUtil.setHostName(hostName);
   }
 
+  /**
+   * Set password on the encryptor. If an encryptor isn't configured, a BasicTextEncryptor will be
+   * initialized and the password set on it. The basic assumed encryption algorithm is
+   * PBEWithMD5AndDES. This can be changed by setting the StandardPBEStringEncryptor.
+   * 
+   * @param password
+   */
   public void setPassword(String password) {
-    encryptor = new BasicTextEncryptor();
-    encryptor.setPassword(password);
+
+    this.encryptor = new StandardPBEStringEncryptor();
+    EnvironmentStringPBEConfig configurationEncryptor = new EnvironmentStringPBEConfig();
+    configurationEncryptor.setAlgorithm("PBEWithMD5AndDES");
+    configurationEncryptor.setPassword(password);
+    encryptor.setConfig(configurationEncryptor);
+
   };
+
+  /**
+   * Override default text encryptor (StandardPBEStringEncryptor). Enables overriding both password
+   * and algorithm.
+   * 
+   * @param encryptor
+   */
+  public void setTextEncryptor(StandardPBEStringEncryptor config) {
+    this.encryptor = config;
+  }
 
   public void setRefreshRate(Integer refresh) {
 

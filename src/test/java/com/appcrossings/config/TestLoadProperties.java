@@ -2,7 +2,7 @@ package com.appcrossings.config;
 
 import java.util.Properties;
 
-import org.jasypt.util.text.BasicTextEncryptor;
+import org.jasypt.encryption.pbe.StandardPBEStringEncryptor;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -10,11 +10,12 @@ import org.testng.annotations.Test;
 public class TestLoadProperties {
 
   private String host = "http://static.ca.pixtulate.com";
-  private BasicTextEncryptor encryptor = new BasicTextEncryptor();
+  private StandardPBEStringEncryptor encryptor = new StandardPBEStringEncryptor();
 
   @BeforeClass
   public void before() {
     encryptor.setPassword("secret");
+    encryptor.setAlgorithm("PBEWithMD5AndDES");
   }
 
   @Test

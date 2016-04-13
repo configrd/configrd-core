@@ -8,8 +8,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
+import org.jasypt.encryption.pbe.StandardPBEStringEncryptor;
 import org.jasypt.properties.EncryptableProperties;
-import org.jasypt.util.text.TextEncryptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.DefaultResourceLoader;
@@ -61,7 +61,7 @@ public class ResourcesUtil {
     return p;
   }
 
-  public static Properties loadHosts(String hostsFile, TextEncryptor encryptor)
+  public static Properties loadHosts(String hostsFile, StandardPBEStringEncryptor encryptor)
       throws IllegalArgumentException {
 
     log.info("Fetching hosts file from path: " + hostsFile);
@@ -73,7 +73,11 @@ public class ResourcesUtil {
           + " couldn't be found at location " + hostsFile);
     }
 
-    Properties hosts = new EncryptableProperties(encryptor);
+    Properties hosts = new Properties();
+
+    if (encryptor != null)
+      hosts = new EncryptableProperties(encryptor);
+    
     try (InputStream stream = resource.getInputStream()) {
 
       hosts.load(stream);
@@ -86,8 +90,8 @@ public class ResourcesUtil {
 
   }
 
-  public static EncryptableProperties loadProperties(String propertiesPath,
-      String propertiesFileName, boolean searchClasspath, TextEncryptor encryptor) {
+  public static Properties loadProperties(String propertiesPath, String propertiesFileName,
+      boolean searchClasspath, StandardPBEStringEncryptor encryptor) {
 
     List<Properties> all = new ArrayList<>();
 
@@ -109,7 +113,10 @@ public class ResourcesUtil {
 
     Collections.reverse(all); // sort from root to highest
 
-    EncryptableProperties ps = new EncryptableProperties(encryptor);
+    Properties ps = new Properties();
+
+    if (encryptor != null)
+      ps = new EncryptableProperties(encryptor);
 
     for (Properties p : all) {
       ps.putAll(p); // merge down and replace lower properties with override properties
