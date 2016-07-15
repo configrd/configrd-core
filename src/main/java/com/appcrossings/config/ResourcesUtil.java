@@ -30,54 +30,92 @@ public class ResourcesUtil {
 
     Resource resource = resourceLoader.getResource(propertiesPath + "/" + propertiesFileName);
 
-    // Check if a spring properties file exists
-    if (!resource.exists()) {
+    log.info("Attempting " + resource.getDescription());
+
+    boolean exists = false;
+    for (int retry = 0; retry < 3; retry++) {
+      if (resource.exists()) {
+        exists = true;
+        break;
+      }
+
+      log.info("Not found. Retrying...");
+    }
+
+    if (!exists) {
+      // OK, no custom properties file, maybe a spring application.properties file?
       resource = resourceLoader.getResource(propertiesPath + "/application.properties");
+
+      // ok, last chance effort...
+      if (!resource.exists())
+        return p;
     }
 
     // Search for default.properties file in parent folders
-    if (resource.exists()) {
+    log.info("Found " + resource.getDescription());
 
-      try (InputStream stream2 = resource.getInputStream()) {
-
-        log.info("Found properties file: " + propertiesPath + "/" + resource.getFilename());
-        p.load(stream2);
-
-      } catch (IOException e) {
-
-        // file not found...no issue, keep going
-        if (StringUtils.hasText(e.getMessage())
-            && (e.getMessage().contains("code: 403") || e.getMessage().contains("code: 404"))) {
-
-          // Do nothing here since we'll just keep looping with parent
-          // path anyway
-
-        } else {
-          Throwables.propagate(e);
-        }
-      }
-    }
+    p = downloadFile(resource);
 
     return p;
   }
 
-  public static Properties loadHosts(String hostsFile, StandardPBEStringEncryptor encryptor)
-      throws IllegalArgumentException {
+  public static Properties downloadFile(Resource resource) {
+
+    Properties p = new Properties();
+    Throwable ex = null;
+    for (int retry = 0; retry < 3; retry++) {
+
+      try (InputStream stream2 = resource.getInputStream()) {
+
+        p.load(stream2);
+        break;
+
+      } catch (IOException e) {
+        ex = e;
+        continue;
+
+      }
+    }
+
+    // we've retried, file not found...no issue, keep going
+    if (ex != null && StringUtils.hasText(ex.getMessage()) && (ex.getMessage().contains("code: 403") || ex.getMessage().contains("code: 404"))) {
+
+      // Do nothing here since we'll just keep looping with parent
+      // path anyway
+
+    } else if (ex != null) {
+      Throwables.propagate(ex);
+    }
+
+    return p;
+
+  }
+
+  public static Properties loadHosts(String hostsFile, StandardPBEStringEncryptor encryptor) throws IllegalArgumentException {
 
     log.info("Fetching hosts file from path: " + hostsFile);
 
     Resource resource = new DefaultResourceLoader().getResource(hostsFile);
 
-    if (!resource.exists()) {
-      throw new IllegalArgumentException("Properties file " + hostsFile
-          + " couldn't be found at location " + hostsFile);
+    boolean exists = false;
+    for (int retry = 0; retry < 3; retry++) {
+      if (resource.exists()) {
+        exists = true;
+        break;
+      }
+
+      log.info("Not found. Retrying...");
+    }
+
+    if (!exists) {
+      throw new IllegalArgumentException("Properties file " + hostsFile + " couldn't be found at location " + hostsFile);
     }
 
     Properties hosts = new Properties();
 
     if (encryptor != null)
       hosts = new EncryptableProperties(encryptor);
-    
+
     try (InputStream stream = resource.getInputStream()) {
 
       hosts.load(stream);
@@ -90,8 +128,7 @@ public class ResourcesUtil {
 
   }
 
-  public static Properties loadProperties(String propertiesPath, String propertiesFileName,
-      boolean searchClasspath, StandardPBEStringEncryptor encryptor) {
+  public static Properties loadProperties(String propertiesPath, String propertiesFileName, boolean searchClasspath, StandardPBEStringEncryptor encryptor) {
 
     List<Properties> all = new ArrayList<>();
 

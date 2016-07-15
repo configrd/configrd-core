@@ -26,8 +26,7 @@ import org.springframework.util.StringUtils;
  * @author Krzysztof Karski
  *
  */
-public class HierarchicalPropertyPlaceholderConfigurer extends PropertySourcesPlaceholderConfigurer
-    implements Config, EnvironmentAware, ApplicationContextAware {
+public class HierarchicalPropertyPlaceholderConfigurer extends PropertySourcesPlaceholderConfigurer implements Config, EnvironmentAware, ApplicationContextAware {
 
   private class ReloadTask extends TimerTask {
 
@@ -44,8 +43,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertySourcesPl
   }
 
   public final static String DEFAULT_PROPERTIES_FILE_NAME = "default.properties";
-  private final static Logger log = LoggerFactory
-      .getLogger(HierarchicalPropertyPlaceholderConfigurer.class);
+  private final static Logger log = LoggerFactory.getLogger(HierarchicalPropertyPlaceholderConfigurer.class);
 
   public final static boolean SEARCH_CLASSPATH = true;
 
@@ -76,9 +74,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertySourcesPl
    */
   public HierarchicalPropertyPlaceholderConfigurer(String path) throws Exception {
     setLocalOverride(true);
-    helper =
-        new PropertyPlaceholderHelper(this.placeholderPrefix, this.placeholderSuffix,
-            this.valueSeparator, this.ignoreUnresolvablePlaceholders);
+    helper = new PropertyPlaceholderHelper(this.placeholderPrefix, this.placeholderSuffix, this.valueSeparator, this.ignoreUnresolvablePlaceholders);
     this.hostsFilePath = path;
   }
 
@@ -101,9 +97,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertySourcesPl
 
     String property;
     try {
-      property =
-          helper.replacePlaceholders(placeholderPrefix + key + placeholderSuffix,
-              loadedProperties.get());
+      property = helper.replacePlaceholders(placeholderPrefix + key + placeholderSuffix, loadedProperties.get());
 
       if (property.equals(key))
         return null;
@@ -141,33 +135,36 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertySourcesPl
 
     Properties hosts = ResourcesUtil.loadHosts(hostsFilePath, encryptor);
 
-    String propertiesFile = hosts.getProperty(hostName);
+    String startPath = hosts.getProperty(hostName);
 
     // Attempt environment as a backup
-    if (!StringUtils.hasText(propertiesFile) && StringUtils.hasText(environmentName)) {
+    if (!StringUtils.hasText(startPath) && StringUtils.hasText(environmentName)) {
 
-      propertiesFile = hosts.getProperty(environmentName);
+      startPath = hosts.getProperty(environmentName);
 
-    } else if (!StringUtils.hasText(propertiesFile)) {
+    } else if (!StringUtils.hasText(startPath)) {
 
-      propertiesFile = hosts.getProperty("*");// catch all
+      startPath = hosts.getProperty("*");// catch all
 
     }
 
-    log.debug("Found properties starting at path: " + propertiesFile);
+    if (StringUtils.hasText(startPath)) {
+
+      log.debug("Searching for properties beginning at: " + startPath);
+
+      Properties ps = ResourcesUtil.loadProperties(startPath, propertiesFileName, searchClasspath, encryptor);
+
+      if (ps.isEmpty()) {
+        log.warn("Counldn't find any properties for host " + hostName + " or environment " + environmentName);
+      }
+
+      // Finally, propagate properties to PropertyPlaceholderConfigurer
+      loadedProperties.set(ps);
+      super.setProperties(loadedProperties.get());
     
-    Properties ps =
-        ResourcesUtil
-            .loadProperties(propertiesFile, propertiesFileName, searchClasspath, encryptor);
-
-    if (ps.isEmpty()) {
-      log.warn("Counldn't find any properties for host " + hostName + " or environment "
-          + environmentName);
+    } else {
+      log.warn("Counldn't find any properties for host " + hostName + " or environment " + environmentName);
     }
-
-    // Finally, propagate properties to PropertyPlaceholderConfigurer
-    loadedProperties.set(ps);
-    super.setProperties(loadedProperties.get());
 
     try {
       mergeProperties();
@@ -177,8 +174,7 @@ public class HierarchicalPropertyPlaceholderConfigurer extends PropertySourcesPl
   }
 
   @Override
-  public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory)
-      throws BeansException {
+  public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
 
     init();
     super.postProcessBeanFactory(beanFactory);

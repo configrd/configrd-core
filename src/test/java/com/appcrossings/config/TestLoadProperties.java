@@ -31,7 +31,7 @@ public class TestLoadProperties {
 
   }
 
-  @Test
+  @Test(enabled=false)
   public void testPullHostFileFromAmazon() throws Exception {
 
     Properties p = ResourcesUtil.loadHosts(host + "/env/hosts.properties", encryptor);
@@ -50,7 +50,7 @@ public class TestLoadProperties {
 
   }
 
-  @Test
+  @Test(enabled=false)
   public void testPullPropertiesFileFromAmazon() throws Exception {
 
     Properties p =
