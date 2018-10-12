@@ -73,7 +73,7 @@ public class TestEnvironmentUtil {
   
   @Test
   public void testReplacePathsWithEnvironmentValues() throws Exception {
-    String templatedPath = "http://config.server.com:8080/${appconfig.app.name}/${appconfig.app.env}/hosts.properties";
+    String templatedPath = "http://config.server.com:8080/${configrd.app.name}/${configrd.app.env}/hosts.properties";
     
   }
 
