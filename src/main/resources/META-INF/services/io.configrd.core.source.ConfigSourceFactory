@@ -1,0 +1,2 @@
+io.configrd.core.file.FileConfigSourceFactory
+io.configrd.core.http.HttpConfigSourceFactory
