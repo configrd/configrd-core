@@ -1,9 +1,10 @@
 package io.configrd.core.source;
 
+import java.io.Closeable;
 import java.net.URI;
 import java.util.Optional;
 
-public interface StreamSource {
+public interface StreamSource extends Closeable{
 
   public static final String FILE_SYSTEM = "file";
   public static final String HTTPS = "http";
@@ -35,6 +36,5 @@ public interface StreamSource {
 
   public void init();
 
-  public void close();
 
 }

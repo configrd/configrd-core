@@ -98,13 +98,13 @@ public class YamlProcessor {
         props.put(builder.toString(), i);
 
       } else if (i instanceof Boolean) {
-        
+
         props.put(builder.toString(), i);
-        
+
       } else if (i instanceof Integer) {
-        
+
         props.put(builder.toString(), i);
-        
+
       }
 
       builder = new StringBuilder(node);
