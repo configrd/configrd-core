@@ -4,7 +4,7 @@ jobs:
     docker:
     - image: circleci/openjdk:8-jdk
     environment:
-      CC_TEST_REPORTER_ID: 622268c8a0711a70aa888d325b8a281757b501b7043391033b4be4b006669c92
+      CC_TEST_REPORTER_ID: 269aef8f8e92ff9098164f7454b5c1b715c1fa5f955f2aaa31770771ee82fd38
     steps:
     - checkout
     - run:
