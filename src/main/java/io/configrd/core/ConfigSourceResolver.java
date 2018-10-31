@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -30,16 +31,22 @@ public class ConfigSourceResolver {
   private final static Logger logger = LoggerFactory.getLogger(ConfigSourceResolver.class);
 
   public final static String DEFAULT_REPO_NAME = "default";
-  public static final String CONFIGRD_CONFIG = "configrd.config.location";
 
   final Map<String, Object> defaults = new HashMap<>();
   final ServiceLoader<ConfigSourceFactory> streamSourceLoader;
+
   final Map<String, ConfigSource> reposByName = new HashMap<>();
   final Map<String, StreamSource> typedSources = new HashMap<>();
-  LinkedHashMap<String, Object> repos;
+
+  public static final String ADHOC_SOURCE = "configrd.source.adhoc";
+
+  private static final String configrd_config_source =
+      System.getProperty(SystemProperties.CONFIGRD_CONFIG_SOURCE);
+
+  private LinkedHashMap<String, Object> repos;
 
   public ConfigSourceResolver() {
-    this(System.getProperty(CONFIGRD_CONFIG, "classpath:repo-defaults.yml"));
+    this(System.getProperty(SystemProperties.CONFIGRD_CONFIG, "classpath:repo-defaults.yml"));
   }
 
   public ConfigSourceResolver(String repoDefPath) {
@@ -73,6 +80,11 @@ public class ConfigSourceResolver {
         for (Entry<String, Object> entry : repos.entrySet()) {
 
           try {
+
+            LinkedHashMap<String, Object> repo = (LinkedHashMap) entry.getValue();
+
+            // copy down defaults
+            defaults.entrySet().stream().forEach(e -> repo.putIfAbsent(e.getKey(), e.getValue()));
 
             Optional<ConfigSource> cs = buildConfigSource(entry);
             if (cs.isPresent())
@@ -128,6 +140,7 @@ public class ConfigSourceResolver {
     Optional<ConfigSource> oc = Optional.empty();
 
     if (entry.getValue() instanceof LinkedHashMap) {
+
       LinkedHashMap<String, Object> repo = (LinkedHashMap) entry.getValue();
 
       final String repoName = entry.getKey();
@@ -154,8 +167,8 @@ public class ConfigSourceResolver {
 
       if (factory.isPresent()) {
 
-        ConfigSource initializedSource = factory.get().newConfigSource(repoName.toLowerCase(),
-            (Map) entry.getValue(), new HashMap<>(defaults));
+        ConfigSource initializedSource =
+            factory.get().newConfigSource(repoName.toLowerCase(), (Map) entry.getValue());
 
         oc = Optional.of(initializedSource);
 
@@ -179,7 +192,21 @@ public class ConfigSourceResolver {
 
   public Optional<ConfigSource> buildAdHocConfigSource(final URI uri) {
 
-    Set<ConfigSourceFactory> sources = resolveFactoryByUri(uri);
+    Set<ConfigSourceFactory> sources = new HashSet<>();
+
+    if (StringUtils.hasText(configrd_config_source)) {
+
+      Optional<ConfigSourceFactory> named = resolveFactorySourceName(configrd_config_source);
+      if (named.isPresent()) {
+        sources.add(named.get());
+      }
+
+    }
+
+    if (sources.isEmpty()) {
+      sources = resolveFactoryByUri(uri);
+    }
+
     Optional<ConfigSource> source = Optional.empty();
 
     if (!sources.isEmpty()) {
@@ -188,7 +215,8 @@ public class ConfigSourceResolver {
 
       Map<String, Object> values = new HashMap<>();
       values.put("uri", root.toString());
-      source = Optional.of(csf.newConfigSource("adhoc", values, defaults));
+      defaults.entrySet().forEach(e -> values.putIfAbsent(e.getKey(), e.getValue()));
+      source = Optional.of(csf.newConfigSource("configrd.source.adhoc", values));
     }
 
     return source;

@@ -1,7 +1,6 @@
 package io.configrd.core.file;
 
 import java.io.File;
-import java.util.HashMap;
 import java.util.Map;
 import io.configrd.core.source.ConfigSource;
 import io.configrd.core.source.ConfigSourceFactory;
@@ -10,10 +9,9 @@ import io.configrd.core.source.StreamSource;
 public class FileConfigSourceFactory implements ConfigSourceFactory {
 
   @Override
-  public  ConfigSource newConfigSource(String name, final Map<String, Object> values,
-      final Map<String, Object> defaults) {
+  public ConfigSource newConfigSource(String name, final Map<String, Object> values) {
 
-    StreamSource source = newStreamSource(name, values, defaults);
+    StreamSource source = newStreamSource(name, values);
 
     DefaultFileConfigSource configSource = new DefaultFileConfigSource(source, values);
     return configSource;
@@ -32,12 +30,9 @@ public class FileConfigSourceFactory implements ConfigSourceFactory {
     return StreamSource.FILE_SYSTEM;
   }
 
-  public StreamSource newStreamSource(String name, Map<String, Object> values,
-      Map<String, Object> defaults) {
-    final Map<String, Object> merged = new HashMap<>(defaults);
-    merged.putAll(values);
+  public StreamSource newStreamSource(String name, Map<String, Object> values) {
 
-    FileRepoDef def = new FileRepoDef(name, merged);
+    FileRepoDef def = new FileRepoDef(name, values);
 
     if (def.valid().length > 0) {
       throw new IllegalArgumentException(String.join(",", def.valid()));

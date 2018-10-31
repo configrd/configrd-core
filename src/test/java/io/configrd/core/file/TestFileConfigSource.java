@@ -11,7 +11,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
-import io.configrd.core.file.FileConfigSourceFactory;
 import io.configrd.core.source.ConfigSource;
 import io.configrd.core.source.ConfigSourceFactory;
 import io.configrd.core.source.FileBasedRepo;
@@ -43,14 +42,16 @@ public class TestFileConfigSource {
   @After
   public void cleanup() throws Exception {
     FileUtils.forceDelete(folder.getRoot());
+    defaults.clear();
   }
 
   @Test
   public void loadClasspathProperties() throws Exception {
 
-    source = source =
-        factory.newConfigSource("TestFileConfigSource", (Map) Splitter.on(",").omitEmptyStrings()
-            .trimResults().withKeyValueSeparator("=").split("uri=classpath:/"), defaults);
+    defaults.putAll((Map) Splitter.on(",").omitEmptyStrings().trimResults()
+        .withKeyValueSeparator("=").split("uri=classpath:/"));
+
+    source = source = factory.newConfigSource("TestFileConfigSource", defaults);
 
     Map<String, Object> p = source.get("env/dev/default.properties", Sets.newHashSet());
     Assert.assertNotNull(p);
@@ -62,9 +63,10 @@ public class TestFileConfigSource {
   @Test
   public void loadAppendDefaultFileName() throws Exception {
 
-    source = source =
-        factory.newConfigSource("TestFileConfigSource", (Map) Splitter.on(",").omitEmptyStrings()
-            .trimResults().withKeyValueSeparator("=").split("uri=classpath:/"), defaults);
+    defaults.putAll((Map) Splitter.on(",").omitEmptyStrings().trimResults()
+        .withKeyValueSeparator("=").split("uri=classpath:/"));
+
+    source = source = factory.newConfigSource("TestFileConfigSource", defaults);
 
     Map<String, Object> p = source.get("env/dev/", Sets.newHashSet());
     Assert.assertNotNull(p);
@@ -76,13 +78,10 @@ public class TestFileConfigSource {
   @Test
   public void loadFileProperties() throws Exception {
 
-    source =
-        source =
-            factory
-                .newConfigSource("TestFileConfigSource",
-                    (Map) Splitter.on(",").omitEmptyStrings().trimResults()
-                        .withKeyValueSeparator("=").split("uri=file:" + folder.getRoot()),
-                    defaults);
+    defaults.putAll((Map) Splitter.on(",").omitEmptyStrings().trimResults()
+        .withKeyValueSeparator("=").split("uri=file:" + folder.getRoot()));
+
+    source = source = factory.newConfigSource("TestFileConfigSource", defaults);
 
     Map<String, Object> p = source.get("/env/dev/default.properties", Sets.newHashSet());
     Assert.assertNotNull(p);
@@ -94,9 +93,10 @@ public class TestFileConfigSource {
   @Test(expected = IllegalArgumentException.class)
   public void loadClasspathRelativePath() throws Exception {
 
-    source = source =
-        factory.newConfigSource("TestFileConfigSource", (Map) Splitter.on(",").omitEmptyStrings()
-            .trimResults().withKeyValueSeparator("=").split("uri=/env/dev/"), defaults);
+    defaults.putAll((Map) Splitter.on(",").omitEmptyStrings().trimResults()
+        .withKeyValueSeparator("=").split("uri=/env/dev/"));
+
+    source = source = factory.newConfigSource("TestFileConfigSource", defaults);
 
     Map<String, Object> p = source.get("/", Sets.newHashSet());
     Assert.assertNotNull(p);
@@ -108,9 +108,10 @@ public class TestFileConfigSource {
   @Test
   public void testLoadHosts() throws Exception {
 
-    source = source =
-        factory.newConfigSource("TestFileConfigSource", (Map) Splitter.on(",").omitEmptyStrings()
-            .trimResults().withKeyValueSeparator("=").split("uri=classpath:/"), defaults);
+    defaults.putAll((Map) Splitter.on(",").omitEmptyStrings().trimResults()
+        .withKeyValueSeparator("=").split("uri=classpath:/"));
+
+    source = source = factory.newConfigSource("TestFileConfigSource", defaults);
 
     Map<String, Object> p = source.getRaw("env/hosts.properties");
     Assert.assertNotNull(p);
@@ -118,7 +119,4 @@ public class TestFileConfigSource {
     Assert.assertEquals(p.get("michelangello"), "classpath:/env/dev/");
 
   }
-
-
-
 }

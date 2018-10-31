@@ -21,7 +21,14 @@ public class StreamPacket extends PropertyPacket {
 
   public StreamPacket(URI uri, InputStream stream) throws FileNotFoundException {
     super(uri);
-    readBytes(stream);
+    readBytes(stream, 1024);
+    detectMediaType();
+
+  }
+
+  public StreamPacket(URI uri, InputStream stream, long bytes) throws FileNotFoundException {
+    super(uri);
+    readBytes(stream, bytes);
     detectMediaType();
 
   }
@@ -74,18 +81,20 @@ public class StreamPacket extends PropertyPacket {
     return bytes.length > 0;
   }
 
-  private void readBytes(final InputStream stream) throws FileNotFoundException {
+  private void readBytes(final InputStream stream, long bytes) throws FileNotFoundException {
 
     if (stream == null) {
       return;
     }
-
-    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-
+    
     int nRead;
-    byte[] data = new byte[1024];
 
-    try {
+    if (bytes > Integer.MAX_VALUE)
+      bytes = Integer.MAX_VALUE;
+
+    byte[] data = new byte[Math.toIntExact(bytes)];
+
+    try(ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
 
       while ((nRead = stream.read(data, 0, data.length)) != -1) {
         buffer.write(data, 0, nRead);
@@ -103,11 +112,6 @@ public class StreamPacket extends PropertyPacket {
       // nothing
 
     } finally {
-      try {
-        buffer.close();
-      } catch (Exception e) {
-        // TODO: handle exception
-      }
 
       try {
         stream.close();

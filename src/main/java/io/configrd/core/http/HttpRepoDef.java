@@ -22,6 +22,16 @@ public class HttpRepoDef extends DefaultRepoDef implements FileBasedRepo, Secure
 
   String username;
 
+  Boolean trustCert = false;
+  
+  public Boolean getTrustCert() {
+    return trustCert;
+  }
+
+  public void setTrustCert(Boolean trustCert) {
+    this.trustCert = trustCert;
+  }
+
   /**
    * For testing convenience
    */

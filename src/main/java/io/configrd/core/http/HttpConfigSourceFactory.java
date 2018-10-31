@@ -1,18 +1,18 @@
 package io.configrd.core.http;
 
-import java.util.HashMap;
 import java.util.Map;
+import io.configrd.core.SystemProperties;
 import io.configrd.core.source.ConfigSource;
 import io.configrd.core.source.ConfigSourceFactory;
 import io.configrd.core.source.StreamSource;
+import io.configrd.core.util.StringUtils;
 
 public class HttpConfigSourceFactory implements ConfigSourceFactory {
 
   @Override
-  public ConfigSource newConfigSource(String name, Map<String, Object> values,
-      Map<String, Object> defaults) {
+  public ConfigSource newConfigSource(String name, Map<String, Object> values) {
 
-    StreamSource source = newStreamSource(name, values, defaults);
+    StreamSource source = newStreamSource(name, values);
 
     DefaultHttpConfigSource configSource = new DefaultHttpConfigSource(source, values);
     return configSource;
@@ -28,13 +28,14 @@ public class HttpConfigSourceFactory implements ConfigSourceFactory {
     return path.trim().startsWith("http");
   }
 
-  public StreamSource newStreamSource(String name, Map<String, Object> values,
-      Map<String, Object> defaults) {
+  public StreamSource newStreamSource(String name, Map<String, Object> values) {
 
-    final Map<String, Object> merged = new HashMap<>(defaults);
-    merged.putAll((Map) values);
+    HttpRepoDef def = new HttpRepoDef(name, values);
 
-    HttpRepoDef def = new HttpRepoDef(name, merged);
+    if (def.getTrustCert() == null
+        && StringUtils.hasText(System.getProperty(SystemProperties.HTTP_TRUST_CERTS))) {
+      def.setTrustCert(Boolean.valueOf(System.getProperty(SystemProperties.HTTP_TRUST_CERTS)));
+    }
 
     if (def.valid().length > 0) {
       throw new IllegalArgumentException(String.join(",", def.valid()));

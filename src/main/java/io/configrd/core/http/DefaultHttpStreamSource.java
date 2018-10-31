@@ -3,9 +3,16 @@ package io.configrd.core.http;
 import java.io.IOException;
 import java.net.URI;
 import java.net.UnknownHostException;
+import java.security.cert.CertificateException;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import io.configrd.core.processor.ProcessorSelector;
@@ -26,11 +33,14 @@ import okhttp3.Route;
 
 public class DefaultHttpStreamSource implements StreamSource, AdHocStreamSource {
 
+
+
   protected OkHttpClient client;
   public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
   private final static Logger log = LoggerFactory.getLogger(DefaultHttpStreamSource.class);
   private final HttpRepoDef def;
   private final URIBuilder builder;
+
 
   public DefaultHttpStreamSource(HttpRepoDef def) {
     client = new OkHttpClient();
@@ -42,6 +52,26 @@ public class DefaultHttpStreamSource implements StreamSource, AdHocStreamSource 
   public void init() {
 
     OkHttpClient.Builder builder = new OkHttpClient.Builder();
+
+    if (def.getTrustCert()) {
+      try {
+
+        final SSLContext sslContext = SSLContext.getInstance("TSL");
+        sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+        final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+
+        builder.sslSocketFactory(sslSocketFactory, (X509TrustManager) trustAllCerts[0]);
+        builder.hostnameVerifier(new HostnameVerifier() {
+          @Override
+          public boolean verify(String hostname, SSLSession session) {
+            return true;
+          }
+        });
+
+      } catch (Exception e) {
+        // TODO: handle exception
+      }
+    }
 
     if (StringUtils.hasText(def.getPassword())) {
       final AtomicInteger result = new AtomicInteger(0);
@@ -62,6 +92,7 @@ public class DefaultHttpStreamSource implements StreamSource, AdHocStreamSource 
         }
       });
     }
+
     builder.connectTimeout(10, TimeUnit.SECONDS);
     builder.writeTimeout(10, TimeUnit.SECONDS);
     builder.readTimeout(30, TimeUnit.SECONDS);
@@ -74,7 +105,7 @@ public class DefaultHttpStreamSource implements StreamSource, AdHocStreamSource 
 
     Optional<PropertyPacket> stream = Optional.empty();
     Builder request = new Request.Builder().url(uri.toString()).get();
-    log.debug(request.toString());
+    log.debug(request.build().url().uri().toString());
 
     if (!validateURI(uri)) {
       throw new IllegalArgumentException("Uri " + uri + " is not valid");
@@ -137,6 +168,7 @@ public class DefaultHttpStreamSource implements StreamSource, AdHocStreamSource 
     return is;
   }
 
+
   @Override
   public URI prototypeURI(String path) {
     return builder.build(path);
@@ -146,5 +178,20 @@ public class DefaultHttpStreamSource implements StreamSource, AdHocStreamSource 
   public void close() {
     // nothing
   }
+
+  private static final TrustManager[] trustAllCerts = new TrustManager[] {new X509TrustManager() {
+    @Override
+    public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType)
+        throws CertificateException {}
+
+    @Override
+    public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType)
+        throws CertificateException {}
+
+    @Override
+    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+      return new java.security.cert.X509Certificate[] {};
+    }
+  }};
 
 }

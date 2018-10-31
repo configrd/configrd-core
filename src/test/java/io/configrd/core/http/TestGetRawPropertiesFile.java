@@ -7,7 +7,6 @@ import org.junit.Before;
 import org.junit.Test;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Sets;
-import io.configrd.core.http.HttpConfigSourceFactory;
 import io.configrd.core.source.ConfigSource;
 import io.configrd.core.source.ConfigSourceFactory;
 import io.configrd.core.source.FileBasedRepo;
@@ -24,10 +23,10 @@ public class TestGetRawPropertiesFile {
 
     defaults.put(FileBasedRepo.FILE_NAME_FIELD, "default.properties");
     defaults.put(FileBasedRepo.HOSTS_FILE_NAME_FIELD, "hosts.properties");
+    defaults.putAll((Map) Splitter.on(",").omitEmptyStrings().trimResults()
+        .withKeyValueSeparator("=").split("uri=" + host));
 
-    source =
-        csf.newConfigSource("TestGetRawPropertiesFile", (Map) Splitter.on(",").omitEmptyStrings()
-            .trimResults().withKeyValueSeparator("=").split("uri=" + host), defaults);
+    source = csf.newConfigSource("TestGetRawPropertiesFile", defaults);
 
   }
 
