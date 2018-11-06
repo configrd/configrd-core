@@ -7,20 +7,7 @@ jobs:
       CC_TEST_REPORTER_ID: 269aef8f8e92ff9098164f7454b5c1b715c1fa5f955f2aaa31770771ee82fd38
     steps:
     - checkout
-    - run:
-        name: Setup Code Climate test-reporter
-        command: |
-          curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-          chmod +x ./cc-test-reporter
-          ./cc-test-reporter before-build
     - run: mvn clean install -B -s .circleci/settings.xml
-    - run:
-        name: Upload Code Climate test-reporter
-        command: |
-          cd ~/project/src/main/java
-          ~/project/./cc-test-reporter format-coverage -d -t jacoco ~/project/target/site/jacoco/jacoco.xml -o ~/project/target/coverage/codeclimate.json
-          cd ~/project
-          ./cc-test-reporter upload-coverage -d -i ~/project/target/coverage/codeclimate.json
     - save_cache:
         key: configrd-client-{{ .Branch }}-{{ checksum "pom.xml" }}-{{ .Environment.CIRCLE_SHA1 }}
         paths:
