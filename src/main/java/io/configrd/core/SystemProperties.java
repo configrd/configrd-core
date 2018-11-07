@@ -10,11 +10,11 @@ public interface SystemProperties {
   /**
    * Absolute location of the configrd config yaml file
    */
-  public static final String CONFIGRD_CONFIG = "configrd.config.location";
+  public static final String CONFIGRD_CONFIG_URI = "configrd.config.uri";
   
   /**
    * Which config source should be used to fetch the configrd config yaml file?
    */
-  public static final String CONFIGRD_CONFIG_SOURCE = "configrd.config.source";
+  public static final String CONFIGRD_CONFIG_SOURCE = "configrd.config.streamSource";
 
 }

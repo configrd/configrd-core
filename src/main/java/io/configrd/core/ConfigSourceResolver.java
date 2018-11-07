@@ -40,13 +40,15 @@ public class ConfigSourceResolver {
 
   public static final String ADHOC_SOURCE = "configrd.source.adhoc";
 
+  private static final String default_cofigrd_config_uri = "classpath:repo-defaults.yml";
+
   private static final String configrd_config_source =
       System.getProperty(SystemProperties.CONFIGRD_CONFIG_SOURCE);
 
   private LinkedHashMap<String, Object> repos;
 
   public ConfigSourceResolver() {
-    this(System.getProperty(SystemProperties.CONFIGRD_CONFIG, "classpath:repo-defaults.yml"));
+    this(System.getProperty(SystemProperties.CONFIGRD_CONFIG_URI, default_cofigrd_config_uri));
   }
 
   public ConfigSourceResolver(String repoDefPath) {
