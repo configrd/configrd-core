@@ -40,32 +40,25 @@ public class ConfigSourceResolver {
 
   public static final String ADHOC_SOURCE = "configrd.source.adhoc";
 
-  private static final String default_cofigrd_config_uri = "classpath:repo-defaults.yml";
-
-  private static final String configrd_config_source =
-      System.getProperty(SystemProperties.CONFIGRD_CONFIG_SOURCE);
+  public static final String default_cofigrd_config_uri = "classpath:repo-defaults.yml";
 
   private LinkedHashMap<String, Object> repos;
 
-  public ConfigSourceResolver() {
-    this(System.getProperty(SystemProperties.CONFIGRD_CONFIG_URI, default_cofigrd_config_uri));
-  }
-
-  public ConfigSourceResolver(String repoDefPath) {
+  public ConfigSourceResolver(String configUri, String configStreamSource) {
 
     defaults.put(FileRepoDef.HOSTS_FILE_NAME_FIELD, "hosts.properties");
     defaults.put(FileRepoDef.FILE_NAME_FIELD, "defaults.properties");
 
     streamSourceLoader = ServiceLoader.load(ConfigSourceFactory.class);
 
-    if (repoDefPath.equalsIgnoreCase("classpath:repo-defaults.yml")) {
-      logger.warn("Loading default configrd configuration file at " + repoDefPath);
+    if (configUri.equalsIgnoreCase(default_cofigrd_config_uri)) {
+      logger.warn("Loading default configrd configuration file at " + configUri);
     } else {
-      logger.info("Loading configrd configuration file from " + repoDefPath);
+      logger.info("Loading configrd configuration file from " + configUri);
     }
 
 
-    LinkedHashMap<String, Object> y = loadRepoDefFile(URI.create(repoDefPath));
+    LinkedHashMap<String, Object> y = loadRepoDefFile(URI.create(configUri), configStreamSource);
     loadRepoConfig(y);
 
     if (y.containsKey("service")) {
@@ -106,9 +99,10 @@ public class ConfigSourceResolver {
     return defaults;
   }
 
-  protected LinkedHashMap<String, Object> loadRepoDefFile(URI repoDefPath) {
+  protected LinkedHashMap<String, Object> loadRepoDefFile(URI repoDefPath,
+      String streamSourceName) {
 
-    Optional<ConfigSource> cs = buildAdHocConfigSource(repoDefPath);
+    Optional<ConfigSource> cs = buildAdHocConfigSource(repoDefPath, streamSourceName);
 
     if (cs.isPresent()) {
 
@@ -192,13 +186,13 @@ public class ConfigSourceResolver {
     }
   }
 
-  public Optional<ConfigSource> buildAdHocConfigSource(final URI uri) {
+  public Optional<ConfigSource> buildAdHocConfigSource(final URI uri, String streamSourceName) {
 
     Set<ConfigSourceFactory> sources = new HashSet<>();
 
-    if (StringUtils.hasText(configrd_config_source)) {
+    if (StringUtils.hasText(streamSourceName)) {
 
-      Optional<ConfigSourceFactory> named = resolveFactorySourceName(configrd_config_source);
+      Optional<ConfigSourceFactory> named = resolveFactorySourceName(streamSourceName);
       if (named.isPresent()) {
         sources.add(named.get());
       }

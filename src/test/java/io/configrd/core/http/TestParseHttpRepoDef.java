@@ -16,7 +16,7 @@ public class TestParseHttpRepoDef {
   @Test
   public void testParseHttpRepoDef() throws Exception {
 
-    resolver = new ConfigSourceResolver(yamlFile);
+    resolver = new ConfigSourceResolver(yamlFile, null);
 
     Optional<ConfigSource> def = resolver.findByRepoName("git-master");
     Assert.assertFalse(def.isPresent());

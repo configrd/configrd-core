@@ -81,8 +81,6 @@ public class ConfigClient implements Config {
 
   private final Method method;
 
-  protected final String REPO_DEF_PATH = "classpath:repo-defaults.yml";
-
   protected String repoDefLocation;
 
   protected final ConfigSourceResolver sourceResolver;
@@ -106,7 +104,7 @@ public class ConfigClient implements Config {
     assert StringUtils.hasText(uri) : "Host or properties file path null or empty";
     this.startLocation = URI.create(uri);
     this.method = Method.ABSOLUTE_URI;
-    this.sourceResolver = new ConfigSourceResolver(REPO_DEF_PATH);
+    this.sourceResolver = new ConfigSourceResolver(ConfigSourceResolver.default_cofigrd_config_uri, null);
   }
 
   /**
@@ -117,14 +115,14 @@ public class ConfigClient implements Config {
    */
   public ConfigClient(String repoDefPath, String uri, Method method) {
 
-    assert StringUtils.hasText(repoDefPath) : "repo.def.path is null or empty";
+    assert StringUtils.hasText(repoDefPath) : "configrd.config.uri is null or empty";
     assert StringUtils.hasText(uri) : "Host or properties file path null or empty";
     assert method != null : "Method must be specified";
 
     this.repoDefLocation = repoDefPath;
     this.startLocation = URI.create(uri);
     this.method = method;
-    this.sourceResolver = new ConfigSourceResolver(this.repoDefLocation);
+    this.sourceResolver = new ConfigSourceResolver(this.repoDefLocation, null);
   }
 
   public Environment getEnvironment() {
@@ -267,7 +265,7 @@ public class ConfigClient implements Config {
     logger.info("Loading hosts file at " + startLocation);
     Optional<URI> startPath = Optional.empty();
 
-    Optional<ConfigSource> source = this.sourceResolver.buildAdHocConfigSource(hostFilePath);
+    Optional<ConfigSource> source = this.sourceResolver.buildAdHocConfigSource(hostFilePath, null);
 
     if (source.isPresent()) {
       String path = UriUtil.getPath(hostFilePath);
@@ -291,7 +289,7 @@ public class ConfigClient implements Config {
 
     } else {
 
-      cs = this.sourceResolver.buildAdHocConfigSource(startPath);
+      cs = this.sourceResolver.buildAdHocConfigSource(startPath, null);
     }
 
     return cs;
