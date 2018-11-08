@@ -40,7 +40,7 @@ public class ConfigSourceResolver {
 
   public static final String ADHOC_SOURCE = "configrd.source.adhoc";
 
-  public static final String default_cofigrd_config_uri = "classpath:repo-defaults.yml";
+  public static final String DEFAULT_CONFIGRD_CONFIG_URI = "classpath:repo-defaults.yml";
 
   private LinkedHashMap<String, Object> repos;
 
@@ -51,7 +51,7 @@ public class ConfigSourceResolver {
 
     streamSourceLoader = ServiceLoader.load(ConfigSourceFactory.class);
 
-    if (configUri.equalsIgnoreCase(default_cofigrd_config_uri)) {
+    if (configUri.equalsIgnoreCase(DEFAULT_CONFIGRD_CONFIG_URI)) {
       logger.warn("Loading default configrd configuration file at " + configUri);
     } else {
       logger.info("Loading configrd configuration file from " + configUri);

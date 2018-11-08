@@ -104,7 +104,7 @@ public class ConfigClient implements Config {
     assert StringUtils.hasText(uri) : "Host or properties file path null or empty";
     this.startLocation = URI.create(uri);
     this.method = Method.ABSOLUTE_URI;
-    this.sourceResolver = new ConfigSourceResolver(ConfigSourceResolver.default_cofigrd_config_uri, null);
+    this.sourceResolver = new ConfigSourceResolver(ConfigSourceResolver.DEFAULT_CONFIGRD_CONFIG_URI, null);
   }
 
   /**
