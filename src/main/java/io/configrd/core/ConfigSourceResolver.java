@@ -48,8 +48,8 @@ public class ConfigSourceResolver {
     defaults.put(FileRepoDef.FILE_NAME_FIELD, "defaults.properties");
 
     streamSourceLoader = ServiceLoader.load(ConfigSourceFactory.class);
-    
-    for(ConfigSourceFactory f : streamSourceLoader) {
+
+    for (ConfigSourceFactory f : streamSourceLoader) {
       logger.debug("Loaded " + f.getSourceName() + " config source from classpath.");
     }
 
@@ -193,12 +193,12 @@ public class ConfigSourceResolver {
       Optional<ConfigSourceFactory> named = resolveFactorySourceName(streamSourceName);
       if (named.isPresent()) {
         sources.add(named.get());
-        logger.debug("Found stream source of type: " + streamSourceName);
       }
     }
 
     if (sources.isEmpty()) {
-      logger.warn("Found no stream source of type: " + streamSourceName + ". Searching for fallback option by URI scheme.");
+      logger.warn("Found no stream source of type: " + streamSourceName
+          + ". Searching for fallback option by URI scheme.");
       sources = resolveFactoryByUri(uri);
     }
 
@@ -212,8 +212,8 @@ public class ConfigSourceResolver {
       values.put("uri", root.toString());
       defaults.entrySet().forEach(e -> values.putIfAbsent(e.getKey(), e.getValue()));
       source = Optional.of(csf.newConfigSource("configrd.source.adhoc", values));
-
-      logger.warn("Found URI compatible stream source of type: " + csf.getSourceName() + " instead of " + streamSourceName);
+      logger
+          .debug("Found stream source of type: " + source.get().getStreamSource().getSourceName());
     }
 
     return source;
