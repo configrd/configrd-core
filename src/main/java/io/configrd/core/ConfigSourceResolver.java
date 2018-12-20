@@ -40,8 +40,6 @@ public class ConfigSourceResolver {
 
   public static final String ADHOC_SOURCE = "configrd.source.adhoc";
 
-  public static final String DEFAULT_CONFIGRD_CONFIG_URI = "classpath:repo-defaults.yml";
-
   private LinkedHashMap<String, Object> repos;
 
   public ConfigSourceResolver(String configUri, String configStreamSource) {
@@ -50,13 +48,13 @@ public class ConfigSourceResolver {
     defaults.put(FileRepoDef.FILE_NAME_FIELD, "defaults.properties");
 
     streamSourceLoader = ServiceLoader.load(ConfigSourceFactory.class);
-
-    if (configUri.equalsIgnoreCase(DEFAULT_CONFIGRD_CONFIG_URI)) {
-      logger.warn("Loading default configrd configuration file at " + configUri);
-    } else {
-      logger.info("Loading configrd configuration file from " + configUri);
+    
+    for(ConfigSourceFactory f : streamSourceLoader) {
+      logger.debug("Loaded " + f.getSourceName() + " config source from classpath.");
     }
 
+    logger.info("Loading configrd configuration file from " + configUri + " using stream source: "
+        + configStreamSource);
 
     LinkedHashMap<String, Object> y = loadRepoDefFile(URI.create(configUri), configStreamSource);
     loadRepoConfig(y);
@@ -195,11 +193,12 @@ public class ConfigSourceResolver {
       Optional<ConfigSourceFactory> named = resolveFactorySourceName(streamSourceName);
       if (named.isPresent()) {
         sources.add(named.get());
+        logger.debug("Found stream source of type: " + streamSourceName);
       }
-
     }
 
     if (sources.isEmpty()) {
+      logger.warn("Found no stream source of type: " + streamSourceName + ". Searching for fallback option by URI scheme.");
       sources = resolveFactoryByUri(uri);
     }
 
@@ -213,6 +212,8 @@ public class ConfigSourceResolver {
       values.put("uri", root.toString());
       defaults.entrySet().forEach(e -> values.putIfAbsent(e.getKey(), e.getValue()));
       source = Optional.of(csf.newConfigSource("configrd.source.adhoc", values));
+
+      logger.warn("Found URI compatible stream source of type: " + csf.getSourceName() + " instead of " + streamSourceName);
     }
 
     return source;
@@ -226,11 +227,11 @@ public class ConfigSourceResolver {
     return Optional.ofNullable(reposByName.get(repoName.toLowerCase()));
   }
 
-  public Optional<ConfigSourceFactory> resolveFactorySourceName(String sourceNames) {
+  public Optional<ConfigSourceFactory> resolveFactorySourceName(String sourceName) {
 
     Optional<ConfigSourceFactory> ocs =
         StreamSupport.stream(streamSourceLoader.spliterator(), false).filter(s -> {
-          return sourceNames.contains(s.getSourceName());
+          return sourceName.toLowerCase().contains(s.getSourceName().toLowerCase());
         }).findFirst();
 
     return ocs;

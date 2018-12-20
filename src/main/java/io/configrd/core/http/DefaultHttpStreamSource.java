@@ -33,8 +33,6 @@ import okhttp3.Route;
 
 public class DefaultHttpStreamSource implements StreamSource, AdHocStreamSource {
 
-
-
   protected OkHttpClient client;
   public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
   private final static Logger log = LoggerFactory.getLogger(DefaultHttpStreamSource.class);
@@ -105,7 +103,7 @@ public class DefaultHttpStreamSource implements StreamSource, AdHocStreamSource 
 
     Optional<PropertyPacket> stream = Optional.empty();
     Builder request = new Request.Builder().url(uri.toString()).get();
-    log.debug(request.build().url().uri().toString());
+    log.debug("Fetching path: " + request.build().url().uri().toString());
 
     if (!validateURI(uri)) {
       throw new IllegalArgumentException("Uri " + uri + " is not valid");
