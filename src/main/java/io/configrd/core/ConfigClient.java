@@ -99,13 +99,13 @@ public class ConfigClient implements Config {
    *        indicates no automated timer
    * @throws Exception
    */
-  public ConfigClient(String uri) {
-
-    assert StringUtils.hasText(uri) : "Host or properties file path null or empty";
-    this.startLocation = URI.create(uri);
-    this.method = Method.ABSOLUTE_URI;
-    this.sourceResolver = new ConfigSourceResolver(ConfigSourceResolver.DEFAULT_CONFIGRD_CONFIG_URI, null);
-  }
+//  public ConfigClient(String uri) {
+//
+//    assert StringUtils.hasText(uri) : "Host or properties file path null or empty";
+//    this.startLocation = URI.create(uri);
+//    this.method = Method.ABSOLUTE_URI;
+//    this.sourceResolver = new ConfigSourceResolver(DEFAULT_CONFIGRD_CONFIG_URI, null);
+//  }
 
   /**
    * 
