@@ -42,13 +42,13 @@ public class ConfigSourceResolver {
 
   private LinkedHashMap<String, Object> repos;
 
-  public ConfigSourceResolver(String configUri, String configStreamSource) {
+  public ConfigSourceResolver(String configUri, String configStreamSource) throws IOException {
 
     defaults.put(FileRepoDef.HOSTS_FILE_NAME_FIELD, "hosts.properties");
     defaults.put(FileRepoDef.FILE_NAME_FIELD, "defaults.properties");
 
-    streamSourceLoader = ServiceLoader.load(ConfigSourceFactory.class);
-
+    streamSourceLoader = ServiceLoader.load(ConfigSourceFactory.class, getClass().getClassLoader());
+    
     for (ConfigSourceFactory f : streamSourceLoader) {
       logger.debug("Loaded " + f.getSourceName() + " config source from classpath.");
     }
@@ -97,8 +97,8 @@ public class ConfigSourceResolver {
     return defaults;
   }
 
-  protected LinkedHashMap<String, Object> loadRepoDefFile(URI repoDefPath,
-      String streamSourceName) {
+  protected LinkedHashMap<String, Object> loadRepoDefFile(URI repoDefPath, String streamSourceName)
+      throws IOException {
 
     Optional<ConfigSource> cs = buildAdHocConfigSource(repoDefPath, streamSourceName);
 
@@ -116,17 +116,17 @@ public class ConfigSourceResolver {
           LinkedHashMap<String, Object> y = (LinkedHashMap) yaml.load(s);
           return y;
 
-        } catch (IOException e) {
-          // TODO: handle exception
         }
 
       } else {
         throw new IllegalArgumentException(
             "Unable to fetch repo definitions from location " + repoDefPath);
       }
-    }
 
-    return new LinkedHashMap<String, Object>();
+    } else {
+      throw new IllegalStateException(
+          "Unable to find compatible config stream source to bootstrap with.");
+    }
   }
 
   protected Optional<ConfigSource> buildConfigSource(Entry<String, Object> entry) {

@@ -1,5 +1,6 @@
 package io.configrd.core;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -113,7 +114,7 @@ public class ConfigClient implements Config {
    *        or hosts.properties path
    * @throws Exception
    */
-  public ConfigClient(String repoDefPath, String uri, Method method) {
+  public ConfigClient(String repoDefPath, String uri, Method method) throws IOException {
 
     assert StringUtils.hasText(repoDefPath) : "configrd.config.uri is null or empty";
     assert StringUtils.hasText(uri) : "Host or properties file path null or empty";
