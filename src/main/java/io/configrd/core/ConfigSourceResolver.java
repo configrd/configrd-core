@@ -48,7 +48,7 @@ public class ConfigSourceResolver {
     defaults.put(FileRepoDef.FILE_NAME_FIELD, "defaults.properties");
 
     streamSourceLoader = ServiceLoader.load(ConfigSourceFactory.class, getClass().getClassLoader());
-    
+
     for (ConfigSourceFactory f : streamSourceLoader) {
       logger.debug("Loaded " + f.getSourceName() + " config source from classpath.");
     }
