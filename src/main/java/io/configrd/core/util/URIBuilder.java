@@ -93,33 +93,43 @@ public class URIBuilder {
   public URI build(String extendedPath) {
 
     boolean hasFile = false;
+    boolean endsSlash = false;
+
+    StringBuilder s = new StringBuilder(scheme + ":");
+
+    String authority = buildAuthority();
+
+    if (StringUtils.hasText(authority)) {
+      s.append("//" + authority);
+
+      endsSlash = (authority.endsWith(File.separator));
+
+      if (!endsSlash && !path.startsWith(File.separator))
+        s.append(File.separator);
+    }
+
+    if (StringUtils.hasText(path)) {
+      s.append(path);
+      endsSlash = (path.endsWith(File.separator));
+    }
 
     if (StringUtils.hasText(extendedPath)) {
-      hasFile = UriUtil.hasFile(URI.create(extendedPath).toString());
+
+      hasFile = UriUtil.hasFile(extendedPath);
 
       if (!extendedPath.endsWith(File.separator) && !hasFile)
         extendedPath += File.separator;
 
       if (extendedPath.startsWith(File.separator))
         extendedPath = extendedPath.replaceFirst(File.separator, "");
+
+      if (!endsSlash && !extendedPath.startsWith(File.separator))
+        s.append(File.separator);
+      
+      s.append(extendedPath);
+
+      endsSlash = extendedPath.endsWith(File.separator);
     }
-
-    StringBuilder s = new StringBuilder();
-    s.append(scheme + ":");
-
-    String authority = buildAuthority();
-
-    if (StringUtils.hasText(authority)) {
-      s.append("//" + buildAuthority());
-
-      if (!path.startsWith("/"))
-        s.append("/");
-    }
-
-    if (StringUtils.hasText(path))
-      s.append(path);
-
-    s.append(extendedPath);
 
     if (StringUtils.hasText(fileName) && !hasFile) {
 
@@ -135,7 +145,7 @@ public class URIBuilder {
       for (String name : this.fragments) {
         joiner.add(name);
       }
-      
+
       s.append(joiner.toString());
     }
 

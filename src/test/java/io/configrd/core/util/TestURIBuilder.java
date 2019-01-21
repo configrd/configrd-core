@@ -14,12 +14,23 @@ public class TestURIBuilder {
 
     Assert.assertEquals(URI.create("classpath:root/first/second/third/file.properties"),
         builder.build());
+    
     Assert.assertEquals(URI.create("classpath:root/first/second/third/file.properties"),
         builder.build(""));
+    
     Assert.assertEquals(URI.create("classpath:root/first/second/third/fourth/file.properties"),
         builder.build("/fourth"));
+    
     Assert.assertEquals(URI.create("classpath:root/first/second/third/fourth/file2.properties"),
         builder.build("/fourth/file2.properties"));
+    
+    Assert.assertEquals(URI.create("classpath:root/first/second/third/fourth/file2.properties"),
+        builder.build("fourth/file2.properties"));
+    
+    builder = URIBuilder.create("file://tmp/configrd/test/configrd-demo");
+    
+    Assert.assertEquals(URI.create("file://tmp/configrd/test/configrd-demo/env/dev/custom/default.properties"),
+        builder.build("env/dev/custom/default.properties"));
 
   }
 
