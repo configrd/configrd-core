@@ -85,11 +85,18 @@ public class UriUtil {
 
     return dirs;
   }
-  
+
   public static String[] getDirSegements(URI uri) {
 
     String path = getPath(uri);
     return getDirSegements(path);
+  }
+
+  public static String getLastDirSegment(URI uri) {
+
+    String[] dirs = getDirSegements(uri);
+    return dirs[dirs.length - 1];
+
   }
 
   public static Optional<String> getFileName(final String path) {
