@@ -9,7 +9,6 @@ import io.configrd.core.source.DefaultRepoDef;
 import io.configrd.core.source.FileBasedRepo;
 import io.configrd.core.source.SecuredRepo;
 import io.configrd.core.util.StringUtils;
-import io.configrd.core.util.URIBuilder;
 
 @SuppressWarnings("serial")
 public class HttpRepoDef extends DefaultRepoDef implements FileBasedRepo, SecuredRepo {
@@ -22,15 +21,6 @@ public class HttpRepoDef extends DefaultRepoDef implements FileBasedRepo, Secure
 
   String username;
 
-  Boolean trustCert = false;
-  
-  public Boolean getTrustCert() {
-    return trustCert;
-  }
-
-  public void setTrustCert(Boolean trustCert) {
-    this.trustCert = trustCert;
-  }
 
   /**
    * For testing convenience
@@ -97,16 +87,13 @@ public class HttpRepoDef extends DefaultRepoDef implements FileBasedRepo, Secure
   }
 
   @Override
-  public URI toURI() {
-    URIBuilder builder = URIBuilder.create(URI.create(getUri()));
-    builder.setFileNameIfMissing(getFileName()).setPasswordIfMissing(getPassword()).setUsernameIfMissing(getUsername());
-    return builder.build();
-  }
-
-  @Override
   public String[] valid() {
 
     Set<String> errors = new HashSet<>();
+
+    for (String s : super.valid()) {
+      errors.add(s);
+    }
 
     if (!(StringUtils.hasText(getUri()) && StringUtils.hasText(getHostsName())
         && StringUtils.hasText(getFileName()))) {
@@ -121,6 +108,11 @@ public class HttpRepoDef extends DefaultRepoDef implements FileBasedRepo, Secure
     }
 
     return errors.toArray(new String[] {});
+  }
+
+  @Override
+  public String getAuthMethod() {
+    return "HttpBasicAuth";
   }
 
 }

@@ -1,21 +1,19 @@
 package io.configrd.core.file;
 
 import java.net.URI;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import org.apache.commons.beanutils.BeanUtils;
 import io.configrd.core.source.DefaultRepoDef;
 import io.configrd.core.source.FileBasedRepo;
-import io.configrd.core.source.SecuredRepo;
-import io.configrd.core.util.URIBuilder;
 import io.configrd.core.util.UriUtil;
 
 @SuppressWarnings("serial")
-public class FileRepoDef extends DefaultRepoDef implements FileBasedRepo, SecuredRepo {
+public class FileRepoDef extends DefaultRepoDef implements FileBasedRepo {
 
   String fileName;
   String hostsName;
-  String password;
-  String username;
 
   /**
    * For testing purposes
@@ -52,44 +50,21 @@ public class FileRepoDef extends DefaultRepoDef implements FileBasedRepo, Secure
     this.hostsName = hostsName;
   }
 
-  public String getPassword() {
-    return password;
-  }
-
-  public void setPassword(String passWord) {
-    this.password = passWord;
-  }
-
-  public void setUsername(String userName) {
-    this.username = userName;
-  }
-
-  @Override
-  public String getUsername() {
-
-    return username;
-  }
-
   @Override
   public String[] valid() {
 
-    String[] err = new String[] {};
-    
-    URI uri = toURI();
+    Set<String> errors = new HashSet<>();
 
-    if (UriUtil.validate(uri).isAbsolute().invalid()) {
-      err = new String[] {"Uri must be absolute"};
+    for (String s : super.valid()) {
+      errors.add(s);
     }
 
-    return err;
-  }
+    URI uri = URI.create(getUri());
 
-  @Override
-  public URI toURI() {
-    URIBuilder builder = URIBuilder.create(URI.create(getUri()));
-    builder.setFileNameIfMissing(getFileName()).setPasswordIfMissing(getPassword())
-        .setUsernameIfMissing(getUsername());
-    return builder.build();
-  }
+    if (UriUtil.validate(uri).isAbsolute().invalid()) {
+      errors.add("Uri must be absolute");
+    }
 
+    return errors.toArray(new String[] {});
+  }
 }

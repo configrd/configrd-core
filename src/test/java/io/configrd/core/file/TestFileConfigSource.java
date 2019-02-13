@@ -14,6 +14,7 @@ import com.google.common.collect.Sets;
 import io.configrd.core.source.ConfigSource;
 import io.configrd.core.source.ConfigSourceFactory;
 import io.configrd.core.source.FileBasedRepo;
+import io.configrd.core.source.RepoDef;
 
 
 public class TestFileConfigSource {
@@ -36,6 +37,7 @@ public class TestFileConfigSource {
     defaults = new HashMap<>();
     defaults.put(FileBasedRepo.FILE_NAME_FIELD, "default.properties");
     defaults.put(FileBasedRepo.HOSTS_FILE_NAME_FIELD, "hosts.properties");
+    defaults.put(RepoDef.SOURCE_NAME_FIELD, "file");
 
   }
 

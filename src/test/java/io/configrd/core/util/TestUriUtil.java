@@ -3,7 +3,6 @@ package io.configrd.core.util;
 import java.net.URI;
 import org.junit.Assert;
 import org.junit.Test;
-import io.configrd.core.util.UriUtil;
 
 public class TestUriUtil {
 
@@ -37,8 +36,9 @@ public class TestUriUtil {
 
     Assert.assertEquals("file.properties",
         UriUtil.getFileName(URI.create("file:/first/second/third/file.properties")).get());
-    
-    Assert.assertFalse(UriUtil.getFileName(URI.create("http://config.appcrossings.com")).isPresent());
+
+    Assert
+        .assertFalse(UriUtil.getFileName(URI.create("http://config.appcrossings.com")).isPresent());
     Assert.assertFalse(UriUtil.getFileName("http://config.appcrossings.com").isPresent());
     Assert.assertFalse(UriUtil.getFileName("/first/second/third").isPresent());
     Assert.assertTrue(UriUtil.getFileName("/first/second/third/file.properties").isPresent());
@@ -61,6 +61,23 @@ public class TestUriUtil {
 
     Assert.assertEquals(new String[] {"first", "second", "third"},
         UriUtil.getDirSegements(URI.create("file:/first/second/third/file.proeprties")));
+
+  }
+
+  @Test
+  public void testGetPath() throws Exception {
+
+    Assert.assertEquals(UriUtil.stripFile(URI.create("http://host:1234/dir1/dir2/dir3")),
+        URI.create("http://host:1234/dir1/dir2/dir3"));
+
+    Assert.assertEquals(UriUtil.stripFile(URI.create("http://host:1234/dir1/dir2/dir3/file.yaml")),
+        URI.create("http://host:1234/dir1/dir2/dir3/"));
+
+    Assert.assertEquals(UriUtil.stripFile(URI.create("/dir1/dir2/dir3/file.yaml")),
+        URI.create("/dir1/dir2/dir3/"));
+
+    Assert.assertEquals(UriUtil.stripFile(URI.create("/dir1/dir2/dir3/")),
+        URI.create("/dir1/dir2/dir3/"));
 
   }
 

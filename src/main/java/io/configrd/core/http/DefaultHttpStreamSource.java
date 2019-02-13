@@ -16,7 +16,7 @@ import javax.net.ssl.X509TrustManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import io.configrd.core.processor.ProcessorSelector;
-import io.configrd.core.source.AdHocStreamSource;
+import io.configrd.core.source.FileStreamSource;
 import io.configrd.core.source.PropertyPacket;
 import io.configrd.core.source.StreamPacket;
 import io.configrd.core.source.StreamSource;
@@ -31,7 +31,7 @@ import okhttp3.Request.Builder;
 import okhttp3.Response;
 import okhttp3.Route;
 
-public class DefaultHttpStreamSource implements StreamSource, AdHocStreamSource {
+public class DefaultHttpStreamSource implements StreamSource, FileStreamSource {
 
   protected OkHttpClient client;
   public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
@@ -43,8 +43,15 @@ public class DefaultHttpStreamSource implements StreamSource, AdHocStreamSource 
   public DefaultHttpStreamSource(HttpRepoDef def) {
     client = new OkHttpClient();
     this.def = def;
-    URI uri = def.toURI();
+    URI uri = toURI();
     builder = URIBuilder.create(uri);
+  }
+
+  private URI toURI() {
+    URIBuilder builder = URIBuilder.create(URI.create(def.getUri()));
+    builder.setFileNameIfMissing(def.getFileName()).setPasswordIfMissing(def.getPassword())
+        .setUsernameIfMissing(def.getUsername());
+    return builder.build();
   }
 
   public void init() {
@@ -99,44 +106,6 @@ public class DefaultHttpStreamSource implements StreamSource, AdHocStreamSource 
 
   }
 
-  public Optional<PropertyPacket> stream(URI uri) {
-
-    Optional<PropertyPacket> stream = Optional.empty();
-    Builder request = new Request.Builder().url(uri.toString()).get();
-    log.debug("Fetching path: " + request.build().url().uri().toString());
-
-    if (!validateURI(uri)) {
-      throw new IllegalArgumentException("Uri " + uri + " is not valid");
-    }
-
-    try (Response call = client.newCall(request.build()).execute()) {
-
-      if (call.isSuccessful() && !call.isRedirect() && call.body().contentLength() > 0) {
-
-        StreamPacket packet = new StreamPacket(uri, call.body().byteStream());
-        packet.setETag(call.header("ETag"));
-        packet.putAll(ProcessorSelector.process(uri.toString(), packet.bytes()));
-        stream = Optional.of(packet);
-
-      } else if (call.isSuccessful() && call.isRedirect()) {
-
-        log.error("Redirect handling not implemented. Server returned location "
-            + call.header("location"));
-      }
-
-    } catch (UnknownHostException e) {
-
-      log.error(e.getMessage(), e);
-      throw new IllegalArgumentException(e.getMessage());
-
-    } catch (Exception e) {
-      log.debug(e.getMessage(), e);
-      // nothing else
-    }
-
-    return stream;
-  }
-
   @Override
   public String getSourceName() {
     return StreamSource.HTTPS;
@@ -153,14 +122,18 @@ public class DefaultHttpStreamSource implements StreamSource, AdHocStreamSource 
   }
 
   @Override
-  public Optional<PropertyPacket> stream(String path) {
-    Optional<PropertyPacket> is = Optional.empty();
+  public Optional<? extends PropertyPacket> stream(final String path) {
 
-    if (builder != null) {
+    Optional<StreamPacket> is = streamFile(path);
+    URI uri = prototypeURI(path);
 
-      URI tempUri = prototypeURI(path);
-      is = stream(tempUri);
-
+    try {
+      if (is.isPresent()) {
+        is.get().putAll(ProcessorSelector.process(uri.toString(), is.get().bytes()));
+      }
+    } catch (Exception e) {
+      log.debug(e.getMessage(), e);
+      // nothing else
     }
 
     return is;
@@ -191,5 +164,45 @@ public class DefaultHttpStreamSource implements StreamSource, AdHocStreamSource 
       return new java.security.cert.X509Certificate[] {};
     }
   }};
+
+
+  @Override
+  public Optional<StreamPacket> streamFile(final String path) {
+
+    final URI uri = prototypeURI(path);
+    StreamPacket packet = null;
+
+    if (!validateURI(uri)) {
+      throw new IllegalArgumentException("Uri " + uri + " is not valid");
+    }
+
+    Builder request = new Request.Builder().url(uri.toString()).get();
+    log.debug("Fetching path: " + request.build().url().uri().toString());
+
+    try (Response call = client.newCall(request.build()).execute()) {
+
+      if (call.isSuccessful() && !call.isRedirect() && call.body().contentLength() > 0) {
+
+        packet = new StreamPacket(uri, call.body().byteStream());
+        packet.setETag(call.header("ETag"));
+
+      } else if (call.isSuccessful() && call.isRedirect()) {
+
+        log.error("Redirect handling not implemented. Server returned location "
+            + call.header("location"));
+      }
+
+    } catch (UnknownHostException e) {
+
+      log.error(e.getMessage(), e);
+      throw new IllegalArgumentException(e.getMessage());
+
+    } catch (Exception e) {
+      log.debug(e.getMessage(), e);
+      // nothing else
+    }
+
+    return Optional.ofNullable(packet);
+  }
 
 }

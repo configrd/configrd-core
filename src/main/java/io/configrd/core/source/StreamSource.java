@@ -16,7 +16,7 @@ public interface StreamSource extends Closeable{
    * @param path
    * @return
    */
-  public Optional<PropertyPacket> stream(String path);
+  public Optional<? extends PropertyPacket> stream(String path);
 
   /**
    * A unique name for this config source type

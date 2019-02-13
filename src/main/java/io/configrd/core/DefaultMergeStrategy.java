@@ -1,11 +1,10 @@
-package io.configrd.core.discovery;
+package io.configrd.core;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import io.configrd.core.MergeStrategy;
 
 public class DefaultMergeStrategy implements MergeStrategy {
 

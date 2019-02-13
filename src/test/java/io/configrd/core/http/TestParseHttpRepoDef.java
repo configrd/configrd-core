@@ -1,12 +1,14 @@
 package io.configrd.core.http;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.Assert;
 import org.junit.Test;
-import io.configrd.core.Config;
 import io.configrd.core.ConfigSourceResolver;
-import io.configrd.core.http.HttpRepoDef;
 import io.configrd.core.source.ConfigSource;
+import io.configrd.core.source.RepoDef;
+import io.configrd.core.source.StreamSource;
 
 public class TestParseHttpRepoDef {
 
@@ -16,7 +18,11 @@ public class TestParseHttpRepoDef {
   @Test
   public void testParseHttpRepoDef() throws Exception {
 
-    resolver = new ConfigSourceResolver(yamlFile, null);
+    Map<String, Object> vals = new HashMap<>();
+    vals.put(RepoDef.URI_FIELD, yamlFile);
+    vals.put(RepoDef.SOURCE_NAME_FIELD, StreamSource.FILE_SYSTEM);
+
+    resolver = new ConfigSourceResolver(vals);
 
     Optional<ConfigSource> def = resolver.findByRepoName("git-master");
     Assert.assertFalse(def.isPresent());
@@ -27,13 +33,13 @@ public class TestParseHttpRepoDef {
 
     HttpRepoDef hrepo = (HttpRepoDef) def.get().getStreamSource().getSourceConfig();
     Assert.assertEquals("http-resource", hrepo.getName());
-    Assert.assertEquals(Config.DEFAULT_PROPERTIES_FILE_NAME, hrepo.getFileName());
-    Assert.assertEquals(Config.DEFAULT_HOSTS_FILE_NAME, hrepo.getHostsName());
+    Assert.assertEquals(ConfigSourceResolver.DEFAULT_PROPERTIES_FILE_NAME, hrepo.getFileName());
+    Assert.assertEquals(ConfigSourceResolver.DEFAULT_HOSTS_FILE_NAME, hrepo.getHostsName());
     Assert.assertEquals(
         "https://raw.githubusercontent.com/configrd/configrd-client/master/src/test/resources",
         hrepo.getUri());
     Assert.assertEquals(2, hrepo.getNamed().size());
-    
+
   }
 
 

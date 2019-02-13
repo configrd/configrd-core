@@ -10,6 +10,7 @@ import com.google.common.collect.Sets;
 import io.configrd.core.source.ConfigSource;
 import io.configrd.core.source.ConfigSourceFactory;
 import io.configrd.core.source.FileBasedRepo;
+import io.configrd.core.source.RepoDef;
 
 public class TestGetRawPropertiesFile {
 
@@ -25,6 +26,7 @@ public class TestGetRawPropertiesFile {
     defaults.put(FileBasedRepo.HOSTS_FILE_NAME_FIELD, "hosts.properties");
     defaults.putAll((Map) Splitter.on(",").omitEmptyStrings().trimResults()
         .withKeyValueSeparator("=").split("uri=" + host));
+    defaults.put(RepoDef.SOURCE_NAME_FIELD, DefaultHttpStreamSource.HTTPS);
 
     source = csf.newConfigSource("TestGetRawPropertiesFile", defaults);
 

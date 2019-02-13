@@ -131,7 +131,7 @@ public class UriUtil {
 
     Optional<String> fileName = Optional.empty();
 
-    if (hasFile(uri.toString())) {
+    if (hasFile(uri)) {
 
       String path = getPath(uri);
 
@@ -184,6 +184,22 @@ public class UriUtil {
     }
 
     return path.toString().contains(".");
+  }
+
+  public static boolean hasFile(URI uri) {
+
+    return hasFile(uri.toString());
+  }
+
+  public static URI stripFile(URI uri) {
+
+    if (!hasFile(uri)) {
+      return uri;
+    }
+
+    Optional<String> file = getFileName(uri);
+    return URI.create(uri.toString().replace(file.get(), ""));
+
   }
 
   public static boolean isURI(String url) {

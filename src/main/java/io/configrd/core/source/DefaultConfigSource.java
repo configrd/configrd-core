@@ -3,8 +3,8 @@ package io.configrd.core.source;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.collections.map.HashedMap;
+import io.configrd.core.DefaultMergeStrategy;
 import io.configrd.core.MergeStrategy;
-import io.configrd.core.discovery.DefaultMergeStrategy;
 import io.configrd.core.util.DirectoryTraverse;
 import io.configrd.core.util.StringUtils;
 
@@ -63,7 +63,6 @@ public abstract class DefaultConfigSource implements ConfigSource {
     return merge.merge();
 
   }
-
 
   @Override
   public String getName() {

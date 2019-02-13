@@ -125,7 +125,7 @@ public class URIBuilder {
 
       if (!endsSlash && !extendedPath.startsWith(File.separator))
         s.append(File.separator);
-      
+
       s.append(extendedPath);
 
       endsSlash = extendedPath.endsWith(File.separator);
@@ -198,6 +198,20 @@ public class URIBuilder {
 
     this.path = path;
     return this;
+  }
+
+  public URIBuilder setPath(String path, String... paths) {
+
+    StringJoiner joiner = new StringJoiner(File.separator);
+    joiner.add(path);
+
+    for (String p : paths) {
+      if (StringUtils.hasText(p))
+        joiner.add(p);
+    }
+
+    return setPath(joiner.toString());
+
   }
 
   public URIBuilder setPort(int port) {

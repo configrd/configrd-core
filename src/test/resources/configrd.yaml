@@ -5,4 +5,4 @@ service:
   repos:
     default:
       uri: classpath:/
-      streamSource: file
+      sourceName: file

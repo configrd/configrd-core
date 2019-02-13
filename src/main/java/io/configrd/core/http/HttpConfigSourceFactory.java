@@ -1,11 +1,9 @@
 package io.configrd.core.http;
 
 import java.util.Map;
-import io.configrd.core.SystemProperties;
 import io.configrd.core.source.ConfigSource;
 import io.configrd.core.source.ConfigSourceFactory;
 import io.configrd.core.source.StreamSource;
-import io.configrd.core.util.StringUtils;
 
 public class HttpConfigSourceFactory implements ConfigSourceFactory {
 
@@ -31,11 +29,6 @@ public class HttpConfigSourceFactory implements ConfigSourceFactory {
   public StreamSource newStreamSource(String name, Map<String, Object> values) {
 
     HttpRepoDef def = new HttpRepoDef(name, values);
-
-    if (def.getTrustCert() == null
-        && StringUtils.hasText(System.getProperty(SystemProperties.HTTP_TRUST_CERTS))) {
-      def.setTrustCert(Boolean.valueOf(System.getProperty(SystemProperties.HTTP_TRUST_CERTS)));
-    }
 
     if (def.valid().length > 0) {
       throw new IllegalArgumentException(String.join(",", def.valid()));
