@@ -6,10 +6,13 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import io.configrd.core.source.DefaultConfigSource;
+import io.configrd.core.source.FileConfigSource;
+import io.configrd.core.source.FileStreamSource;
 import io.configrd.core.source.PropertyPacket;
+import io.configrd.core.source.StreamPacket;
 import io.configrd.core.source.StreamSource;
 
-public class DefaultHttpConfigSource extends DefaultConfigSource {
+public class DefaultHttpConfigSource extends DefaultConfigSource implements FileConfigSource {
 
   private final static Logger log = LoggerFactory.getLogger(DefaultHttpConfigSource.class);
 
@@ -20,7 +23,7 @@ public class DefaultHttpConfigSource extends DefaultConfigSource {
   @Override
   public Map<String, Object> getRaw(String path) {
 
-    Optional<PropertyPacket> stream = streamSource.stream(path);
+    Optional<? extends PropertyPacket> stream = streamSource.stream(path);
 
     if (!stream.isPresent())
       return new HashMap<>();
@@ -31,6 +34,14 @@ public class DefaultHttpConfigSource extends DefaultConfigSource {
   @Override
   public boolean isCompatible(StreamSource source) {
     return source instanceof DefaultHttpStreamSource;
+  }
+
+  @Override
+  public Optional<StreamPacket> getFile(final String path) {
+
+    return ((FileStreamSource) streamSource).streamFile(path);
+
+
   }
 
 }

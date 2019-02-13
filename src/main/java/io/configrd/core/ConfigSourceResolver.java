@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -19,7 +18,7 @@ import org.yaml.snakeyaml.Yaml;
 import io.configrd.core.file.FileRepoDef;
 import io.configrd.core.source.ConfigSource;
 import io.configrd.core.source.ConfigSourceFactory;
-import io.configrd.core.source.PropertyPacket;
+import io.configrd.core.source.FileConfigSource;
 import io.configrd.core.source.RepoDef;
 import io.configrd.core.source.StreamPacket;
 import io.configrd.core.source.StreamSource;
@@ -42,22 +41,22 @@ public class ConfigSourceResolver {
 
   private LinkedHashMap<String, Object> repos;
 
-  public ConfigSourceResolver(String configUri, String configStreamSource) throws IOException {
+  public final static String DEFAULT_HOSTS_FILE_NAME = "hosts.properties";
+  public static final String DEFAULT_CONFIG_FILE = "configrd.yaml";
+  public final static String DEFAULT_PROPERTIES_FILE_NAME = "default.properties";
 
-    defaults.put(FileRepoDef.HOSTS_FILE_NAME_FIELD, "hosts.properties");
-    defaults.put(FileRepoDef.FILE_NAME_FIELD, "defaults.properties");
+  public ConfigSourceResolver(final Map<String, Object> vals) throws IOException {
+
+    defaults.put(FileRepoDef.HOSTS_FILE_NAME_FIELD, DEFAULT_HOSTS_FILE_NAME);
+    defaults.put(FileRepoDef.FILE_NAME_FIELD, DEFAULT_PROPERTIES_FILE_NAME);
 
     streamSourceLoader = ServiceLoader.load(ConfigSourceFactory.class, getClass().getClassLoader());
 
     for (ConfigSourceFactory f : streamSourceLoader) {
-      logger.debug("Loaded " + f.getSourceName() + " config source from classpath.");
+      logger.debug("Found " + f.getSourceName() + " config source on classpath.");
     }
 
-    logger.info("Loading configrd configuration file from " + configUri + " using stream source: "
-        + configStreamSource);
-
-    LinkedHashMap<String, Object> y = loadRepoDefFile(URI.create(configUri), configStreamSource);
-    loadRepoConfig(y);
+    LinkedHashMap<String, Object> y = loadRepoDefFile(vals);
 
     if (y.containsKey("service")) {
 
@@ -80,8 +79,9 @@ public class ConfigSourceResolver {
             defaults.entrySet().stream().forEach(e -> repo.putIfAbsent(e.getKey(), e.getValue()));
 
             Optional<ConfigSource> cs = buildConfigSource(entry);
-            if (cs.isPresent())
+            if (cs.isPresent()) {
               reposByName.put(cs.get().getName().toLowerCase(), cs.get());
+            }
 
           } catch (Exception e) {
             logger.error(e.getMessage());
@@ -89,6 +89,8 @@ public class ConfigSourceResolver {
           }
 
         }
+      } else {
+        logger.error("Found no 'repos' definitions in configrd config file.");
       }
     }
   }
@@ -97,36 +99,71 @@ public class ConfigSourceResolver {
     return defaults;
   }
 
-  protected LinkedHashMap<String, Object> loadRepoDefFile(URI repoDefPath, String streamSourceName)
+  protected LinkedHashMap<String, Object> loadRepoDefFile(Map<String, Object> vals)
       throws IOException {
 
-    Optional<ConfigSource> cs = buildAdHocConfigSource(repoDefPath, streamSourceName);
+    defaults.entrySet().forEach(e -> vals.putIfAbsent(e.getKey(), e.getValue()));
+
+    String configUri = (String) vals.get(RepoDef.URI_FIELD);
+    String fileName = (String) vals.get(RepoDef.CONFIGRD_CONFIG_FILENAME_FIELD);
+    String configStreamSource = (String) vals.get(RepoDef.SOURCE_NAME_FIELD);
+
+    if (UriUtil.hasFile(configUri) && !StringUtils.hasText(fileName)) {
+
+      Optional<String> name = UriUtil.getFileName(configUri);
+      if (name.isPresent()) {
+        fileName = name.get();
+      }
+
+    } else if (!UriUtil.hasFile(configUri) && !StringUtils.hasText(fileName)) {
+      fileName = DEFAULT_CONFIG_FILE;
+    }
+
+    logger.info("Loading configrd configuration file from " + configUri + " using stream source: "
+        + configStreamSource);
+
+    Optional<ConfigSourceFactory> cs =
+        locateConfigSourceFactory(URI.create(configUri), configStreamSource);
+
+    LinkedHashMap<String, Object> y = new LinkedHashMap<>();
 
     if (cs.isPresent()) {
 
-      String path = UriUtil.getPath(repoDefPath);
+      ConfigSource source = cs.get().newConfigSource("init", vals);
 
-      Optional<PropertyPacket> stream = cs.get().getStreamSource().stream(path);
+      logger.debug("Found stream source of type: " + source.getStreamSource().getSourceName());
 
-      if (stream.isPresent() && stream.get() instanceof StreamPacket) {
+      if (source instanceof FileConfigSource) {
 
-        try (InputStream s = ((StreamPacket) stream.get()).getInputStream()) {
+        Optional<StreamPacket> stream = ((FileConfigSource) source).getFile(fileName);
 
-          Yaml yaml = new Yaml();
-          LinkedHashMap<String, Object> y = (LinkedHashMap) yaml.load(s);
-          return y;
+        if (stream.isPresent()) {
 
+          try (InputStream s = ((StreamPacket) stream.get()).getInputStream()) {
+
+            Yaml yaml = new Yaml();
+            y = (LinkedHashMap) yaml.load(s);
+
+          }
+
+        } else {
+          throw new IllegalArgumentException(
+              "Unable to fetch repo definitions from location " + configUri);
         }
 
       } else {
-        throw new IllegalArgumentException(
-            "Unable to fetch repo definitions from location " + repoDefPath);
+
+        throw new IllegalStateException(
+            "Unable to find compatible config stream source to bootstrap with.");
+
       }
 
     } else {
       throw new IllegalStateException(
           "Unable to find compatible config stream source to bootstrap with.");
     }
+
+    return y;
   }
 
   protected Optional<ConfigSource> buildConfigSource(Entry<String, Object> entry) {
@@ -139,24 +176,9 @@ public class ConfigSourceResolver {
 
       final String repoName = entry.getKey();
 
-      URI uri = null;
-      if (repo.containsKey(RepoDef.URI_FIELD)) {
-        uri = URI.create((String) repo.get(RepoDef.URI_FIELD));
-      } else {
-        throw new IllegalArgumentException(
-            "No " + RepoDef.URI_FIELD + " found for repo " + repoName + ". Is required.");
-      }
-
       Optional<ConfigSourceFactory> factory = Optional.empty();
-      if (repo.containsKey(RepoDef.STREAM_SOURCE_FIELD)) {
-        factory = resolveFactorySourceName((String) repo.get(RepoDef.STREAM_SOURCE_FIELD));
-      }
-
-      if (!factory.isPresent()) {
-        Set<ConfigSourceFactory> sources = resolveFactoryByUri(uri);
-
-        if (!sources.isEmpty())
-          factory = Optional.of(sources.iterator().next());
+      if (repo.containsKey(RepoDef.SOURCE_NAME_FIELD)) {
+        factory = resolveFactoryBySourceName((String) repo.get(RepoDef.SOURCE_NAME_FIELD));
       }
 
       if (factory.isPresent()) {
@@ -166,57 +188,30 @@ public class ConfigSourceResolver {
 
         oc = Optional.of(initializedSource);
 
+      } else {
+        logger.warn("Unable to find a config source matching '" + repo.get(RepoDef.SOURCE_NAME_FIELD)
+            + "' for repo " + repoName + ".");
       }
     }
 
     return oc;
   }
 
-  protected void loadRepoConfig(LinkedHashMap<String, Object> y) {
+  public Optional<ConfigSourceFactory> locateConfigSourceFactory(final URI uri,
+      String streamSourceName) {
 
-    if (y.containsKey("service")) {
-
-      LinkedHashMap<String, Object> service = (LinkedHashMap) y.get("service");
-
-      if (service.containsKey("defaults")) {
-        defaults.putAll((Map) service.get("defaults"));
-      }
-    }
-  }
-
-  public Optional<ConfigSource> buildAdHocConfigSource(final URI uri, String streamSourceName) {
-
-    Set<ConfigSourceFactory> sources = new HashSet<>();
+    Optional<ConfigSourceFactory> csf = Optional.empty();
 
     if (StringUtils.hasText(streamSourceName)) {
-
-      Optional<ConfigSourceFactory> named = resolveFactorySourceName(streamSourceName);
-      if (named.isPresent()) {
-        sources.add(named.get());
-      }
+      csf = resolveFactoryBySourceName(streamSourceName);
     }
 
-    if (sources.isEmpty()) {
-      logger.warn("Found no stream source of type: " + streamSourceName
-          + ". Searching for fallback option by URI scheme.");
-      sources = resolveFactoryByUri(uri);
+    if (!csf.isPresent()) {
+      logger.error("Found no stream source of type: " + streamSourceName
+          + ". Can't load configrd config file.");
     }
 
-    Optional<ConfigSource> source = Optional.empty();
-
-    if (!sources.isEmpty()) {
-      ConfigSourceFactory csf = sources.iterator().next();
-      URI root = UriUtil.getRoot(uri);
-
-      Map<String, Object> values = new HashMap<>();
-      values.put("uri", root.toString());
-      defaults.entrySet().forEach(e -> values.putIfAbsent(e.getKey(), e.getValue()));
-      source = Optional.of(csf.newConfigSource("configrd.source.adhoc", values));
-      logger
-          .debug("Found stream source of type: " + source.get().getStreamSource().getSourceName());
-    }
-
-    return source;
+    return csf;
   }
 
   public Optional<ConfigSource> findByRepoName(String repoName) {
@@ -227,7 +222,7 @@ public class ConfigSourceResolver {
     return Optional.ofNullable(reposByName.get(repoName.toLowerCase()));
   }
 
-  public Optional<ConfigSourceFactory> resolveFactorySourceName(String sourceName) {
+  public Optional<ConfigSourceFactory> resolveFactoryBySourceName(String sourceName) {
 
     Optional<ConfigSourceFactory> ocs =
         StreamSupport.stream(streamSourceLoader.spliterator(), false).filter(s -> {
