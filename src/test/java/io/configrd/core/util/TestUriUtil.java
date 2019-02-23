@@ -65,7 +65,7 @@ public class TestUriUtil {
   }
 
   @Test
-  public void testGetPath() throws Exception {
+  public void testStripFile() throws Exception {
 
     Assert.assertEquals(UriUtil.stripFile(URI.create("http://host:1234/dir1/dir2/dir3")),
         URI.create("http://host:1234/dir1/dir2/dir3"));
@@ -79,6 +79,30 @@ public class TestUriUtil {
     Assert.assertEquals(UriUtil.stripFile(URI.create("/dir1/dir2/dir3/")),
         URI.create("/dir1/dir2/dir3/"));
 
+  }
+
+  @Test
+  public void testGetPath() throws Exception {
+
+    Assert.assertEquals(UriUtil.getPath(URI.create("http://host:1234/dir1/dir2/dir3")),
+        "/dir1/dir2/dir3");
+
+    Assert.assertEquals(UriUtil.getPath(URI.create("http://host:1234/dir1/dir2/")), "/dir1/dir2/");
+
+    Assert.assertEquals(UriUtil.getPath(URI.create("http://host:1234/dir1/dir2/dir3"),
+        URI.create("http://host:1234")), "/dir1/dir2/dir3");
+
+    Assert.assertEquals(UriUtil.getPath(URI.create("http://host:1234/dir1/dir2/dir3"),
+        URI.create("http://host:1234/dir1")), "/dir2/dir3");
+
+    try {
+      Assert.assertEquals(
+          UriUtil.getPath(URI.create("http://host:1234/dir1/dir2/dir3"), URI.create("blah")),
+          "/dir2/dir3");
+      Assert.fail();
+    } catch (Exception e) {
+      // TODO: handle exception
+    }
   }
 
 }

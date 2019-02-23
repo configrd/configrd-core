@@ -18,6 +18,8 @@ public interface RepoDef {
   public Map<String, String> getNamed();
 
   public String[] valid();
+  
+  public String getUri();
 
   public Boolean getTrustCert();
   

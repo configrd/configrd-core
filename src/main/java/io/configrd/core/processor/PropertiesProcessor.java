@@ -76,13 +76,7 @@ public class PropertiesProcessor {
   public static Properties asProperties(Map<String, Object> map) {
 
     final Properties props = new Properties();
-
-    if (!map.isEmpty()) {
-      map.forEach((k, v) -> {
-        if (v != null && k != null && k != "")
-          props.put(k, v);
-      });
-    }
+    props.putAll(map);
     return props;
 
   }

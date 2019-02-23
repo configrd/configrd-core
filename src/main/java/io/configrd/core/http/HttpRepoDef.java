@@ -95,9 +95,8 @@ public class HttpRepoDef extends DefaultRepoDef implements FileBasedRepo, Secure
       errors.add(s);
     }
 
-    if (!(StringUtils.hasText(getUri()) && StringUtils.hasText(getHostsName())
-        && StringUtils.hasText(getFileName()))) {
-      errors.add("Missing required values. Uri, hostFileName, configFileName are all required");
+    if (!(StringUtils.hasText(getUri()) && StringUtils.hasText(getFileName()))) {
+      errors.add("Missing required values. Uri, configFileName are all required");
     } else {
 
       try {

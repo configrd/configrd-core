@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import io.configrd.core.processor.PropertiesProcessor;
@@ -161,11 +160,6 @@ public class Environment {
 
   public void setProperty(String key, String value) {
     this.envProps.put(key, value);
-  }
-
-  @Override
-  public String toString() {
-    return ToStringBuilder.reflectionToString(this.envProps);
   }
 
 }

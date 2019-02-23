@@ -48,6 +48,28 @@ public class UriUtil {
 
     return path;
   }
+  
+  public static String getPathWihoutFile(URI uri) {
+    Optional<String> fileName = getFileName(uri);
+    
+    if(fileName.isPresent()) {
+      String u = uri.toString().replace(fileName.get(), "");
+      return getPath(URI.create(u));
+    }
+    
+    return getPath(uri);
+  }
+
+  public static String getPath(URI uri, URI root) {
+
+    if (!uri.toString().toLowerCase().contains(root.toString().toLowerCase())) {
+      throw new IllegalArgumentException("Uri doesn't contain root uri to offset path from.");
+    }
+
+    String path = uri.toString().toLowerCase().replace(root.toString().toLowerCase(), "");
+
+    return path;
+  }
 
   public static URI getRoot(URI uri) {
 

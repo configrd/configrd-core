@@ -34,9 +34,8 @@ public class TestParseHttpRepoDef {
     HttpRepoDef hrepo = (HttpRepoDef) def.get().getStreamSource().getSourceConfig();
     Assert.assertEquals("http-resource", hrepo.getName());
     Assert.assertEquals(ConfigSourceResolver.DEFAULT_PROPERTIES_FILE_NAME, hrepo.getFileName());
-    Assert.assertEquals(ConfigSourceResolver.DEFAULT_HOSTS_FILE_NAME, hrepo.getHostsName());
     Assert.assertEquals(
-        "https://raw.githubusercontent.com/configrd/configrd-client/master/src/test/resources",
+        "https://raw.githubusercontent.com/configrd/configrd-core/master/src/test/resources/",
         hrepo.getUri());
     Assert.assertEquals(2, hrepo.getNamed().size());
 

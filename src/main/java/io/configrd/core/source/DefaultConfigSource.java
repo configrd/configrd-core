@@ -1,8 +1,8 @@
 package io.configrd.core.source;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import org.apache.commons.collections.map.HashedMap;
 import io.configrd.core.DefaultMergeStrategy;
 import io.configrd.core.MergeStrategy;
 import io.configrd.core.util.DirectoryTraverse;
@@ -19,7 +19,7 @@ public abstract class DefaultConfigSource implements ConfigSource {
     if (values.containsKey(RepoDef.NAMED_PATHS_FIELD)) {
       this.namedPaths = (Map) values.get(RepoDef.NAMED_PATHS_FIELD);
     } else {
-      this.namedPaths = new HashedMap();
+      this.namedPaths = new HashMap<>();
     }
   }
 
