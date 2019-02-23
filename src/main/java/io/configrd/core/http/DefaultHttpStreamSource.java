@@ -181,7 +181,7 @@ public class DefaultHttpStreamSource implements StreamSource, FileStreamSource {
 
     try (Response call = client.newCall(request.build()).execute()) {
 
-      if (call.isSuccessful() && !call.isRedirect() && call.body().contentLength() > 0) {
+      if (call.isSuccessful() && !call.isRedirect()) {
 
         packet = new StreamPacket(uri, call.body().byteStream());
         packet.setETag(call.header("ETag"));
