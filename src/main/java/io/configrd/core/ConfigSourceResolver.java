@@ -1,5 +1,6 @@
 package io.configrd.core;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -39,7 +40,8 @@ public class ConfigSourceResolver {
 
   private LinkedHashMap<String, Object> repos;
 
-  public final static String DEFAULT_HOSTS_FILE_NAME = "hosts.properties";
+  public static final String DEFAULT_TRUST_CERTS = "false";
+  public static final String DEFAULT_SOURCENAME = "file";
   public static final String DEFAULT_CONFIG_FILE = "configrd.yaml";
   public final static String DEFAULT_PROPERTIES_FILE_NAME = "default.properties";
 
@@ -104,63 +106,89 @@ public class ConfigSourceResolver {
     defaults.entrySet().forEach(e -> vals.putIfAbsent(e.getKey(), e.getValue()));
 
     String configUri = (String) vals.get(RepoDef.URI_FIELD);
-    String fileName = (String) vals.get(RepoDef.CONFIGRD_CONFIG_FILENAME_FIELD);
-    String sourceName = (String) vals.get(RepoDef.SOURCE_NAME_FIELD);
+    String configrdFileName =
+        (String) vals.getOrDefault(RepoDef.CONFIGRD_CONFIG_FILENAME_FIELD, DEFAULT_CONFIG_FILE);
+    String sourceName = (String) vals.getOrDefault(RepoDef.SOURCE_NAME_FIELD, DEFAULT_SOURCENAME);
 
-    if (UriUtil.hasFile(configUri) && !StringUtils.hasText(fileName)) {
-
-      Optional<String> name = UriUtil.getFileName(configUri);
-      if (name.isPresent()) {
-        fileName = name.get();
-      }
-
-    } else if (!UriUtil.hasFile(configUri) && !StringUtils.hasText(fileName)) {
-      fileName = DEFAULT_CONFIG_FILE;
-    }
-
-    logger.info("Loading configrd configuration file from " + configUri + " using stream source: "
-        + sourceName);
-
+    Optional<LinkedHashMap<String, Object>> y = Optional.empty();
     Optional<ConfigSourceFactory> cs = resolveFactoryBySourceName(sourceName);
-
-    LinkedHashMap<String, Object> y = new LinkedHashMap<>();
 
     if (cs.isPresent()) {
 
+      logger.debug("Found config source with name: " + cs.get().getSourceName());
+
       ConfigSource source = cs.get().newConfigSource("init", vals);
 
-      logger.debug("Found stream source of type: " + source.getStreamSource().getSourceName());
+      try {
 
-      if (source instanceof FileConfigSource) {
+        Optional<String> f = UriUtil.getFileName(configUri);
 
-        Optional<StreamPacket> stream = ((FileConfigSource) source).getFile(fileName);
+        if (f.isPresent()) {
 
-        if (stream.isPresent()) {
-
-          try (InputStream s = ((StreamPacket) stream.get()).getInputStream()) {
-
-            Yaml yaml = new Yaml();
-            y = (LinkedHashMap) yaml.load(s);
-
-          } catch (IOException e2) {
-            // nothing
-          }
+          logger.info("Attempting to load configrd config file from " + configUri + " using source "
+              + sourceName);
+          y = fetchConfigrdConfigFile(source, f.get());
 
         } else {
-          throw new IllegalArgumentException(
-              "Unable to fetch repo definitions from location " + configUri);
+
+          try {
+
+            logger.info("Attempting alternate configrd config file named " + configrdFileName);
+            y = fetchConfigrdConfigFile(source, configrdFileName);
+
+          } catch (FileNotFoundException e3) {
+
+            throw new IllegalStateException("Couldn't find a configrd config file to load.");
+
+          }
         }
 
-      } else {
+      } catch (FileNotFoundException e) {
 
-        throw new IllegalStateException(
-            "Unable to find compatible config stream source to bootstrap with.");
+        try {
 
+          logger.info("Attempting alternate configrd config file named " + configrdFileName);
+          y = fetchConfigrdConfigFile(source, configrdFileName);
+
+        } catch (FileNotFoundException e2) {
+
+          throw new IllegalStateException("Couldn't find a configrd config file to load.");
+
+        }
       }
 
     } else {
-      throw new IllegalStateException(
-          "Unable to find config stream source '" + sourceName + "' to load " + fileName);
+      throw new IllegalArgumentException("Unable to find a config source of " + sourceName);
+    }
+
+    return y.get();
+  }
+
+  protected Optional<LinkedHashMap<String, Object>> fetchConfigrdConfigFile(ConfigSource source,
+      String fileName) throws FileNotFoundException {
+
+    Optional<LinkedHashMap<String, Object>> y = Optional.empty();
+
+    if (source instanceof FileConfigSource) {
+
+      Optional<StreamPacket> stream = ((FileConfigSource) source).getFile(fileName);
+
+      if (stream.isPresent()) {
+
+        StreamPacket p = (StreamPacket) stream.get();
+        try (InputStream s = p.getInputStream()) {
+
+          Yaml yaml = new Yaml();
+          y = Optional.of((LinkedHashMap) yaml.load(s));
+          logger.info("Loaded configrd config file at " + p.getUri());
+
+        } catch (IOException e2) {
+          // nothing
+        }
+
+      } else {
+        throw new FileNotFoundException();
+      }
     }
 
     return y;
