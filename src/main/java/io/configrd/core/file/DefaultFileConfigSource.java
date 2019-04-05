@@ -12,11 +12,12 @@ import io.configrd.core.source.PropertyPacket;
 import io.configrd.core.source.StreamPacket;
 import io.configrd.core.source.StreamSource;
 
-public class DefaultFileConfigSource extends DefaultConfigSource implements FileConfigSource {
+public class DefaultFileConfigSource extends DefaultConfigSource<DefaultFileStreamSource>
+    implements FileConfigSource {
 
   private final static Logger log = LoggerFactory.getLogger(DefaultFileConfigSource.class);
 
-  protected DefaultFileConfigSource(StreamSource source, Map<String, Object> values) {
+  protected DefaultFileConfigSource(DefaultFileStreamSource source, Map<String, Object> values) {
     super(source, values);
   }
 

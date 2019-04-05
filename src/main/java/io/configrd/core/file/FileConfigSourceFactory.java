@@ -2,16 +2,15 @@ package io.configrd.core.file;
 
 import java.io.File;
 import java.util.Map;
-import io.configrd.core.source.ConfigSource;
 import io.configrd.core.source.ConfigSourceFactory;
 import io.configrd.core.source.StreamSource;
 
-public class FileConfigSourceFactory implements ConfigSourceFactory {
+public class FileConfigSourceFactory implements ConfigSourceFactory<DefaultFileConfigSource> {
 
   @Override
-  public ConfigSource newConfigSource(String name, final Map<String, Object> values) {
+  public DefaultFileConfigSource newConfigSource(String name, final Map<String, Object> values) {
 
-    StreamSource source = newStreamSource(name, values);
+    DefaultFileStreamSource source = newStreamSource(name, values);
 
     DefaultFileConfigSource configSource = new DefaultFileConfigSource(source, values);
     return configSource;
@@ -30,7 +29,7 @@ public class FileConfigSourceFactory implements ConfigSourceFactory {
     return StreamSource.FILE_SYSTEM;
   }
 
-  public StreamSource newStreamSource(String name, Map<String, Object> values) {
+  public DefaultFileStreamSource newStreamSource(String name, Map<String, Object> values) {
 
     FileRepoDef def = new FileRepoDef(name, values);
 

@@ -3,7 +3,7 @@ package io.configrd.core.source;
 import java.util.Map;
 import java.util.Set;
 
-public interface ConfigSource {
+public interface ConfigSource<T extends StreamSource> {
 
   /**
    * Traverses a config tree per the underlying implementation's mechanism.
@@ -21,11 +21,10 @@ public interface ConfigSource {
    */
   public Map<String, Object> getRaw(String path);
 
-  public StreamSource getStreamSource();
+  public T getStreamSource();
 
   public boolean isCompatible(StreamSource source);
 
   public String getName();
-
 
 }

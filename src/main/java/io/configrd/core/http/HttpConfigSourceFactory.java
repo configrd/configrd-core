@@ -1,16 +1,15 @@
 package io.configrd.core.http;
 
 import java.util.Map;
-import io.configrd.core.source.ConfigSource;
 import io.configrd.core.source.ConfigSourceFactory;
 import io.configrd.core.source.StreamSource;
 
-public class HttpConfigSourceFactory implements ConfigSourceFactory {
+public class HttpConfigSourceFactory implements ConfigSourceFactory<DefaultHttpConfigSource> {
 
   @Override
-  public ConfigSource newConfigSource(String name, Map<String, Object> values) {
+  public DefaultHttpConfigSource newConfigSource(String name, Map<String, Object> values) {
 
-    StreamSource source = newStreamSource(name, values);
+    DefaultHttpStreamSource source = newStreamSource(name, values);
 
     DefaultHttpConfigSource configSource = new DefaultHttpConfigSource(source, values);
     return configSource;
@@ -26,7 +25,7 @@ public class HttpConfigSourceFactory implements ConfigSourceFactory {
     return path.trim().startsWith("http");
   }
 
-  public StreamSource newStreamSource(String name, Map<String, Object> values) {
+  public DefaultHttpStreamSource newStreamSource(String name, Map<String, Object> values) {
 
     HttpRepoDef def = new HttpRepoDef(name, values);
 

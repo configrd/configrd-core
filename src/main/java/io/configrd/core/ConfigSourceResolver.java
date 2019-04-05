@@ -3,20 +3,23 @@ package io.configrd.core;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.ServiceLoader;
-import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 import io.configrd.core.file.FileRepoDef;
+import io.configrd.core.filter.DefaultFilterChain;
+import io.configrd.core.filter.Filter;
+import io.configrd.core.filter.FilterChain;
+import io.configrd.core.filter.FilterFactory;
+import io.configrd.core.filter.RequestFilter;
+import io.configrd.core.filter.ResponseFilter;
 import io.configrd.core.source.ConfigSource;
 import io.configrd.core.source.ConfigSourceFactory;
 import io.configrd.core.source.FileConfigSource;
@@ -34,9 +37,12 @@ public class ConfigSourceResolver {
 
   final Map<String, Object> defaults = new HashMap<>();
   final ServiceLoader<ConfigSourceFactory> streamSourceLoader;
+  final ServiceLoader<FilterFactory> filterLoader;
   ConfigrdConfigLoader configLoader;
 
   final Map<String, ConfigSource> reposByName = new HashMap<>();
+  final Map<String, DefaultFilterChain<ResponseFilter>> responseFilterChain = new HashMap<>();
+  final Map<String, DefaultFilterChain<RequestFilter>> requestFilterChain = new HashMap<>();
   final Map<String, StreamSource> typedSources = new HashMap<>();
 
   private LinkedHashMap<String, Object> repos;
@@ -53,9 +59,14 @@ public class ConfigSourceResolver {
     defaults.put(FileRepoDef.FILE_NAME_FIELD, DEFAULT_PROPERTIES_FILE_NAME);
 
     streamSourceLoader = ServiceLoader.load(ConfigSourceFactory.class, getClass().getClassLoader());
+    filterLoader = ServiceLoader.load(FilterFactory.class, getClass().getClassLoader());
 
     for (ConfigSourceFactory f : streamSourceLoader) {
       logger.debug("Found " + f.getSourceName() + " config source on classpath.");
+    }
+
+    for (FilterFactory f : filterLoader) {
+      logger.debug("Found " + f.getName() + " filters on classpath.");
     }
 
   }
@@ -66,6 +77,77 @@ public class ConfigSourceResolver {
   }
 
   protected class ConfigrdConfigLoader {
+
+    void handleDefaults(LinkedHashMap<String, Object> service) {
+      if (service.containsKey("defaults")) {
+        defaults.putAll((Map) service.get("defaults"));
+      }
+    }
+
+    void handleRepos(LinkedHashMap<String, Object> service) {
+      if (service.containsKey("repos")) {
+
+        repos = (LinkedHashMap) service.get("repos");
+
+        for (Entry<String, Object> entry : repos.entrySet()) {
+
+          LinkedHashMap<String, Object> repo = (LinkedHashMap) entry.getValue();
+          handleRepo(entry.getKey(), repo);
+          handleEncrypt(entry.getKey(), repo);
+
+        }
+      } else {
+        logger.error("Found no 'repos' definitions in configrd config file.");
+      }
+    }
+
+    void handleRepo(String name, LinkedHashMap<String, Object> repo) {
+
+      try {
+
+        Optional<ConfigSource> cs = newConfigSource(name, repo);
+        if (cs.isPresent()) {
+          reposByName.put(cs.get().getName().toLowerCase(), cs.get());
+          requestFilterChain.put(name, new DefaultFilterChain<RequestFilter>());
+          responseFilterChain.put(name, new DefaultFilterChain<ResponseFilter>());
+        }
+
+      } catch (Exception e) {
+        logger.error(e.getMessage());
+        // allow to continue loading other repos
+      }
+
+    }
+
+    void handleEncrypt(String name, LinkedHashMap<String, Object> repo) {
+
+      if (repo.containsKey("encrypt")) {
+
+        LinkedHashMap<String, Object> encrypt = (LinkedHashMap) repo.get("encrypt");
+        if (!encrypt.isEmpty()) {
+
+          Entry<String, Object> entry = encrypt.entrySet().iterator().next();
+
+          final String providerName = entry.getKey();
+          final LinkedHashMap<String, Object> props = (LinkedHashMap) entry.getValue();
+
+          Optional<FilterFactory> factory = StreamSupport.stream(filterLoader.spliterator(), false)
+              .filter(f -> f.getName().equalsIgnoreCase(providerName)).findFirst();
+
+          if (factory.isPresent()) {
+
+            responseFilterChain.get(name.toLowerCase())
+                .isFirst(factory.get().build(props, ResponseFilter.class));
+
+            requestFilterChain.get(name.toLowerCase())
+                .isLast(factory.get().build(props, RequestFilter.class));
+
+          } else {
+            logger.warn("Unable to find matching enctyption provider with name " + name);
+          }
+        }
+      }
+    }
 
     protected ConfigrdConfigLoader(final Map<String, Object> vals) {
 
@@ -88,33 +170,9 @@ public class ConfigSourceResolver {
 
         LinkedHashMap<String, Object> service = (LinkedHashMap) y.get("service");
 
-        if (service.containsKey("defaults")) {
-          defaults.putAll((Map) service.get("defaults"));
-        }
+        handleDefaults(service);
+        handleRepos(service);
 
-        if (service.containsKey("repos")) {
-
-          repos = (LinkedHashMap) service.get("repos");
-          for (Entry<String, Object> entry : repos.entrySet()) {
-
-            try {
-
-              LinkedHashMap<String, Object> repo = (LinkedHashMap) entry.getValue();
-
-              Optional<ConfigSource> cs = buildConfigSource(entry);
-              if (cs.isPresent()) {
-                reposByName.put(cs.get().getName().toLowerCase(), cs.get());
-              }
-
-            } catch (Exception e) {
-              logger.error(e.getMessage());
-              // allow to continue loading other repos
-            }
-
-          }
-        } else {
-          logger.error("Found no 'repos' definitions in configrd config file.");
-        }
       }
     }
 
@@ -212,22 +270,7 @@ public class ConfigSourceResolver {
 
   }
 
-  protected Optional<ConfigSource> buildConfigSource(Entry<String, Object> entry) {
-
-    Optional<ConfigSource> oc = Optional.empty();
-
-    if (entry.getValue() instanceof LinkedHashMap) {
-
-      LinkedHashMap<String, Object> repo = (LinkedHashMap) entry.getValue();
-      final String repoName = entry.getKey();
-
-      oc = buildConfigSource(repoName, repo);
-    }
-
-    return oc;
-  }
-
-  public Optional<ConfigSource> buildConfigSource(String repoName, Map<String, Object> vals) {
+  public Optional<ConfigSource> newConfigSource(String repoName, Map<String, Object> vals) {
 
     Optional<ConfigSource> oc = Optional.empty();
 
@@ -253,12 +296,27 @@ public class ConfigSourceResolver {
     return oc;
   }
 
-  public Optional<ConfigSource> findByRepoName(String repoName) {
+  public Optional<ConfigSource> findConfigSourceByName(String repoName) {
 
     if (!StringUtils.hasText(repoName))
       repoName = ConfigSourceResolver.DEFAULT_REPO_NAME;
 
     return Optional.ofNullable(reposByName.get(repoName.toLowerCase()));
+  }
+
+  public FilterChain findFilterChainByName(String name, Class<? extends Filter> type) {
+
+    if (RequestFilter.class.isAssignableFrom(type)) {
+
+      return requestFilterChain.get(name.toLowerCase());
+
+    } else if (ResponseFilter.class.isAssignableFrom(type)) {
+
+      return responseFilterChain.get(name.toLowerCase());
+
+    } else {
+      throw new IllegalArgumentException();
+    }
   }
 
   protected Optional<ConfigSourceFactory> resolveFactoryBySourceName(String sourceName) {
@@ -267,17 +325,6 @@ public class ConfigSourceResolver {
         StreamSupport.stream(streamSourceLoader.spliterator(), false).filter(s -> {
           return sourceName.toLowerCase().contains(s.getSourceName().toLowerCase());
         }).findFirst();
-
-    return ocs;
-
-  }
-
-  protected Set<ConfigSourceFactory> resolveFactoryByUri(final URI uri) {
-
-    Set<ConfigSourceFactory> ocs =
-        StreamSupport.stream(streamSourceLoader.spliterator(), false).filter(s -> {
-          return s.isCompatible(uri.toString());
-        }).collect(Collectors.toSet());
 
     return ocs;
 

@@ -24,10 +24,10 @@ public class TestParseHttpRepoDef {
 
     resolver = new ConfigSourceResolver(vals);
 
-    Optional<ConfigSource> def = resolver.findByRepoName("git-master");
+    Optional<ConfigSource> def = resolver.findConfigSourceByName("git-master");
     Assert.assertFalse(def.isPresent());
 
-    def = resolver.findByRepoName("http-resource");
+    def = resolver.findConfigSourceByName("http-resource");
     Assert.assertTrue(def.isPresent());
     Assert.assertTrue(def.get().getStreamSource().getSourceConfig() instanceof HttpRepoDef);
 

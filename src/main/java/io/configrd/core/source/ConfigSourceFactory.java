@@ -2,9 +2,9 @@ package io.configrd.core.source;
 
 import java.util.Map;
 
-public interface ConfigSourceFactory {
+public interface ConfigSourceFactory<T extends ConfigSource<? extends StreamSource>> {
 
-  public ConfigSource newConfigSource(String name, final Map<String, Object> values);
+  public T newConfigSource(String name, final Map<String, Object> values);
 
   /**
    * Method resolving to true or false depending if the given paths are compatible with this

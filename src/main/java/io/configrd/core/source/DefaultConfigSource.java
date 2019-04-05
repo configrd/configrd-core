@@ -5,15 +5,16 @@ import java.util.Map;
 import java.util.Set;
 import io.configrd.core.DefaultMergeStrategy;
 import io.configrd.core.MergeStrategy;
+import io.configrd.core.filter.FilterChain;
 import io.configrd.core.util.DirectoryTraverse;
 import io.configrd.core.util.StringUtils;
 
-public abstract class DefaultConfigSource implements ConfigSource {
+public abstract class DefaultConfigSource<T extends StreamSource> implements ConfigSource<T> {
 
   protected final Map<String, String> namedPaths;
-  protected final StreamSource streamSource;
+  protected final T streamSource;
 
-  public DefaultConfigSource(StreamSource source, Map<String, Object> values) {
+  public DefaultConfigSource(T source, Map<String, Object> values) {
     this.streamSource = source;
 
     if (values.containsKey(RepoDef.NAMED_PATHS_FIELD)) {
@@ -74,8 +75,7 @@ public abstract class DefaultConfigSource implements ConfigSource {
   }
 
   @Override
-  public StreamSource getStreamSource() {
+  public T getStreamSource() {
     return streamSource;
   }
-
 }
