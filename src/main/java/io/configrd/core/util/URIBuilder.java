@@ -206,7 +206,7 @@ public class URIBuilder {
     joiner.add(path);
 
     for (String p : paths) {
-      if (StringUtils.hasText(p))
+      if (StringUtils.hasText(p) && !p.equalsIgnoreCase(File.separator))
         joiner.add(p);
     }
 
