@@ -306,16 +306,18 @@ public class ConfigSourceResolver {
 
   public FilterChain findFilterChainByName(String name, Class<? extends Filter> type) {
 
-    if (RequestFilter.class.isAssignableFrom(type)) {
+    if (RequestFilter.class.isAssignableFrom(type)
+        && requestFilterChain.containsKey(name.toLowerCase())) {
 
       return requestFilterChain.get(name.toLowerCase());
 
-    } else if (ResponseFilter.class.isAssignableFrom(type)) {
+    } else if (ResponseFilter.class.isAssignableFrom(type)
+        && responseFilterChain.containsKey(name.toLowerCase())) {
 
       return responseFilterChain.get(name.toLowerCase());
 
     } else {
-      throw new IllegalArgumentException();
+      return new DefaultFilterChain<>();
     }
   }
 
