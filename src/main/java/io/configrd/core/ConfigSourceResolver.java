@@ -113,7 +113,9 @@ public class ConfigSourceResolver {
         }
 
       } catch (Exception e) {
+        logger.error("Exception while loading repository '" + name + "'");
         logger.error(e.getMessage());
+        logger.error("Repository '" + name + "' will not be initialized. Continuing...");
         // allow to continue loading other repos
       }
 
