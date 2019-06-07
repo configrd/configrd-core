@@ -19,9 +19,11 @@ public class PropertiesProcessor {
       Map<String, Object> props = new HashMap<>();
       BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
       String line = null;
-      while ((line = reader.readLine()) != null) {
 
-        if (line.trim().startsWith("#") || line.trim().startsWith("//") || !line.contains("=")) {
+      while ( (line = reader.readLine()) != null) {
+
+        if (line.trim().startsWith("#") || line.trim().startsWith("//")
+            || line.trim().startsWith("!") || !line.contains("=")) {
           continue;
         }
 

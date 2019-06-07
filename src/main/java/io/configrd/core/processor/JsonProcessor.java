@@ -126,6 +126,8 @@ public class JsonProcessor {
 
         recurse(i.asMap(), builder, props);
 
+      } else if (i.valueType().equals(ValueType.NULL)) {
+        props.put(builder.toString(), "");
       }
 
       builder = new StringBuilder(node);

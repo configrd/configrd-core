@@ -105,6 +105,10 @@ public class YamlProcessor {
 
         props.put(builder.toString(), i);
 
+      } else if (i == null) {
+        
+        props.put(builder.toString(), "");
+      
       }
 
       builder = new StringBuilder(node);

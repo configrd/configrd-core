@@ -62,7 +62,7 @@ public class DefaultFileStreamSource implements StreamSource, FileStreamSource {
         p.get().putAll(ProcessorSelector.process(uri.toString(), p.get().bytes()));
       }
     } catch (Exception e) {
-      log.debug(e.getMessage());
+      log.error(e.getMessage());
     }
 
     return p;
