@@ -27,4 +27,6 @@ public interface ConfigSource<T extends StreamSource> {
 
   public String getName();
 
+  public Map<String, String> getNamedPaths();
+
 }

@@ -70,7 +70,7 @@ public abstract class DefaultConfigSource<T extends StreamSource> implements Con
     return streamSource.getSourceConfig().getName();
   }
 
-  protected Map<String, String> getNamedPaths() {
+  public Map<String, String> getNamedPaths() {
     return namedPaths;
   }
 

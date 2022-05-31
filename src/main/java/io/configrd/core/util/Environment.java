@@ -1,5 +1,6 @@
-package io.configrd.core;
+package io.configrd.core.util;
 
+import io.configrd.core.processor.PropertiesProcessor;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collections;
@@ -8,8 +9,6 @@ import java.util.Map;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import io.configrd.core.processor.PropertiesProcessor;
-import io.configrd.core.util.StringUtils;
 
 public class Environment {
 
@@ -22,13 +21,19 @@ public class Environment {
   public final static String OS_NAME = "os.name";
   public final static String OS_VERSION = "os.version";
   public final static String SUBNET_ADDRESS = "subnet";
+
+  public final static String PREFIX = "configrd.";
   protected final Map<String, String> envProps = new HashMap<>();
 
-  public Environment() {}
+  public Environment() {
+    detectEnvironment();
+    detectHostName();
+    detectIP();
+  }
 
   /**
    * Attempt to detect environment of the application.
-   * 
+   *
    * @return environment string
    */
   public String detectEnvironment() {
@@ -47,9 +52,8 @@ public class Environment {
             "No environment variable detected under 'spring.profiles' or system properties 'env', 'ENV', 'environment', 'ENVIRONMENT'");
       } else {
         log.info("Detected environment: " + env);
+        this.envProps.put(ENV_NAME, env);
       }
-
-      this.envProps.put(ENV_NAME, env);
     }
 
     return this.envProps.get(ENV_NAME);
@@ -59,7 +63,7 @@ public class Environment {
    * Reads the underlying host's name. This is used to match this host against its configuration.
    * You can programmatically override the hostname value by setting System.setProperty("hostname",
    * "value").
-   * 
+   *
    * @return hostname
    */
   public String detectHostName() {
@@ -102,7 +106,7 @@ public class Environment {
    * Reads the underlying host's name. This is used to match this host against its configuration.
    * You can programmatically override the hostname value by setting System.setProperty("hostname",
    * "value").
-   * 
+   *
    * @return ip
    */
   public String detectIP() {
@@ -137,12 +141,12 @@ public class Environment {
   }
 
   public Map<String, String> getEnvironment() {
+
     return Collections.unmodifiableMap(this.envProps);
   }
 
   public Properties getProperties() {
-
-    return PropertiesProcessor.asProperties((Map) this.envProps);
+    return PropertiesProcessor.asProperties((Map) getEnvironment());
 
   }
 
