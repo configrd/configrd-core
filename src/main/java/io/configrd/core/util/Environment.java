@@ -94,10 +94,11 @@ public class Environment {
         }
 
         this.envProps.put(HOST_NAME, hostName);
+
       }
-    } else {
-      log.info("Resolved hostname to: " + hostName);
     }
+
+    log.info("Resolved hostname to: " + hostName);
 
     return hostName;
   }
