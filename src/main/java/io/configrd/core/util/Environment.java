@@ -1,12 +1,14 @@
 package io.configrd.core.util;
 
 import io.configrd.core.processor.PropertiesProcessor;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Scanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,28 +76,46 @@ public class Environment {
 
       try {
 
-        hostName =
-            StringUtils.hasText(System.getProperty("hostname")) ? System.getProperty("hostname")
-                : InetAddress.getLocalHost().getHostName();
+        hostName = StringUtils.hasText(System.getenv("hostname")) ? System.getenv("hostname")
+            : InetAddress.getLocalHost().getHostName();
 
       } catch (UnknownHostException ex) {
         // Nothing
       }
+    }
 
-      hostName = StringUtils.hasText(hostName) ? hostName : System.getProperty("HOSTNAME");
+    if (!StringUtils.hasText(hostName)) {
+      String os = System.getProperty("os.name").toLowerCase();
 
-      if (!StringUtils.hasText(hostName)) {
-        log.error(
-            "Unable to resolve host in order to resolve hosts file config. Searched system property 'hostname', 'HOSTNAME' and localhost.hostName");
-      } else {
+      if (os.contains("win")) {
 
-        if (hostName.contains(".")) {
-          hostName = hostName.substring(0, hostName.indexOf("."));
-        }
+        hostName = StringUtils.hasText(execReadToString("hostname")) ? execReadToString("hostname")
+            : System.getenv("COMPUTERNAME");
 
-        this.envProps.put(HOST_NAME, hostName);
+      } else if (os.contains("nix") || os.contains("nux") || os.contains("mac os x")) {
+
+        hostName = StringUtils.hasText(execReadToString("hostname")) ? execReadToString("hostname")
+            : System.getenv("HOSTNAME");
 
       }
+
+      if (!StringUtils.hasText(hostName)) {
+        hostName = execReadToString("cat /etc/hostname");
+      }
+
+    }
+
+    if (!StringUtils.hasText(hostName)) {
+      log.error(
+          "Unable to resolve host in order to resolve hosts file config. Searched system property 'hostname', 'HOSTNAME' and localhost.hostName");
+    } else {
+
+      if (hostName.contains(".")) {
+        hostName = hostName.substring(0, hostName.indexOf("."));
+      }
+
+      this.envProps.put(HOST_NAME, hostName);
+
     }
 
     log.info("Resolved hostname to: " + hostName);
@@ -165,6 +185,19 @@ public class Environment {
 
   public void setProperty(String key, String value) {
     this.envProps.put(key, value);
+  }
+
+  public static void main(String[] args) throws IOException {
+
+  }
+
+  public static String execReadToString(String execCommand) {
+    try (Scanner s = new Scanner(
+        Runtime.getRuntime().exec(execCommand).getInputStream()).useDelimiter("\\A")) {
+      return s.hasNext() ? s.next() : "";
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
 }
